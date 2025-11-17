@@ -56,7 +56,7 @@ if ($_POST) {
     </div>
 
     <button type="submit" 
-            style="width:100%; background:#27ae60; color:white; padding:15px; border:none; border-radius:8px; 
+            style="width:100%; background:#3498db; color:white; padding:15px; border:none; border-radius:8px; 
                    font-size:17px; font-weight:bold; cursor:pointer; transition:background 0.3s;">
         Войти
     </button>
@@ -67,4 +67,4 @@ if ($_POST) {
     <a href="register.php" style="color:#3498db; font-weight:600; text-decoration:none;">Зарегистрироваться →</a>
 </div>
 
-<?php require 'footer.php'; ?>
+<?php require 'footer.php'; ?>  

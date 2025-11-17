@@ -13,14 +13,17 @@ $error = '';
 if ($_POST) {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
 
-    // Базовая валидация
+    // Валидация
     if (strlen($username) < 3) {
         $error = 'Логин должен быть не менее 3 символов';
-    } elseif (strlen($password) < 6) {
-        $error = 'Пароль должен быть не менее 6 символов';
     } elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $username)) {
         $error = 'Логин может содержать только буквы, цифры, _ и -';
+    } elseif (strlen($password) < 6) {
+        $error = 'Пароль должен быть не менее 6 символов';
+    } elseif ($password !== $password_confirm) {
+        $error = 'Пароли не совпадают';
     } else {
         // Проверяем, существует ли уже такой пользователь
         $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
@@ -28,7 +31,7 @@ if ($_POST) {
         if ($stmt->fetch()) {
             $error = 'Этот логин уже занят';
         } else {
-            // Всё ок — регистрируем
+            // Регистрация
             $hash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'user')");
             $stmt->execute([$username, $hash]);
@@ -49,12 +52,12 @@ if ($_POST) {
 <h2 style="text-align:center; margin-bottom:30px;">Создание аккаунта</h2>
 
 <?php if ($error): ?>
-    <div style="color:#e74c3c; background:#fdf2f2; padding:15px; border-radius:8px; margin:20px 0; text-align:center; border:1px solid #fababa;">
+    <div style="color:#e74c3c; background:#fdf2f2; padding:15px; border-radius:8px; margin:20px auto; max-width:420px; text-align:center; border:1px solid #fababa;">
         <?= htmlspecialchars($error) ?>
     </div>
 <?php endif; ?>
 
-<form method="POST" style="max-width:420px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+<form method="POST"" style="max-width:420px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
     <div style="margin-bottom:20px;">
         <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Логин</label>
         <input type="text" name="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" 
@@ -63,10 +66,17 @@ if ($_POST) {
                style="width:100%; padding:14px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
     </div>
 
-    <div style="margin-bottom:25px;">
+    <div style="margin-bottom:20px;">
         <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Пароль</label>
         <input type="password" name="password" required minlength="6"
                placeholder="Минимум 6 символов" autocomplete="new-password"
+               style="width:100%; padding:14px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+    </div>
+
+    <div style="margin-bottom:25px;">
+        <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Повторите пароль</label>
+        <input type="password" name="password_confirm" required minlength="6"
+               placeholder="Введите пароль ещё раз" autocomplete="new-password"
                style="width:100%; padding:14px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
     </div>
 
@@ -79,7 +89,7 @@ if ($_POST) {
 
 <div style="text-align:center; margin-top:30px; color:#7f8c8d;">
     Уже есть аккаунт? 
-    <a href="login.php" style="color:#3498db; font-weight:600; text-decoration:none;">Войти →</a>
+    <a href="login.php" style="color:#3498db; font-weight:600; text-decoration:none;">Войти</a>
 </div>
 
 <?php require 'footer.php'; ?>
