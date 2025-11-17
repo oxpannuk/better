@@ -1,18 +1,85 @@
 <?php
-$page_title = "better — Регистрация";
+$page_title = "Регистрация";
 require 'header.php';
+
+// Если пользователь уже авторизован — сразу кидаем на главную
+if (isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+$error = '';
+
+if ($_POST) {
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    // Базовая валидация
+    if (strlen($username) < 3) {
+        $error = 'Логин должен быть не менее 3 символов';
+    } elseif (strlen($password) < 6) {
+        $error = 'Пароль должен быть не менее 6 символов';
+    } elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $username)) {
+        $error = 'Логин может содержать только буквы, цифры, _ и -';
+    } else {
+        // Проверяем, существует ли уже такой пользователь
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
+            $error = 'Этот логин уже занят';
+        } else {
+            // Всё ок — регистрируем
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'user')");
+            $stmt->execute([$username, $hash]);
+
+            // Автологин после регистрации
+            $user_id = $pdo->lastInsertId();
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['username'] = $username;
+            $_SESSION['role'] = 'user';
+
+            header("Location: index.php");
+            exit;
+        }
+    }
+}
 ?>
-<h2>Регистрация</h2>
-<form method="POST" action="auth.php">
-    <input type="hidden" name="action" value="register">
-    <div style="margin-bottom:15px;">
-        <label>Логин</label>
-        <input type="text" name="username" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+
+<h2 style="text-align:center; margin-bottom:30px;">Создание аккаунта</h2>
+
+<?php if ($error): ?>
+    <div style="color:#e74c3c; background:#fdf2f2; padding:15px; border-radius:8px; margin:20px 0; text-align:center; border:1px solid #fababa;">
+        <?= htmlspecialchars($error) ?>
     </div>
-    <div style="margin-bottom:15px;">
-        <label>Пароль</label>
-        <input type="password" name="password" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+<?php endif; ?>
+
+<form method="POST" style="max-width:420px; margin:0 auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+    <div style="margin-bottom:20px;">
+        <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Логин</label>
+        <input type="text" name="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" 
+               required minlength="3" maxlength="30"
+               placeholder="Придумайте логин" autocomplete="username"
+               style="width:100%; padding:14px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
     </div>
-    <button type="submit" class="btn">Зарегистрироваться</button>
+
+    <div style="margin-bottom:25px;">
+        <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Пароль</label>
+        <input type="password" name="password" required minlength="6"
+               placeholder="Минимум 6 символов" autocomplete="new-password"
+               style="width:100%; padding:14px; border:1px solid #ddd; border-radius:8px; font-size:16px;">
+    </div>
+
+    <button type="submit" 
+            style="width:100%; background:#3498db; color:white; padding:15px; border:none; border-radius:8px; 
+                   font-size:17px; font-weight:bold; cursor:pointer; transition:background 0.3s;">
+        Зарегистрироваться
+    </button>
 </form>
+
+<div style="text-align:center; margin-top:30px; color:#7f8c8d;">
+    Уже есть аккаунт? 
+    <a href="login.php" style="color:#3498db; font-weight:600; text-decoration:none;">Войти →</a>
+</div>
+
 <?php require 'footer.php'; ?>
