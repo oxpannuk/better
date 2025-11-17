@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1:3306
--- Время создания: Ноя 17 2025 г., 00:14
+-- Время создания: Ноя 17 2025 г., 22:17
 -- Версия сервера: 8.0.30
 -- Версия PHP: 7.2.34
 
@@ -51,18 +51,17 @@ INSERT INTO `cities` (`id`, `name`) VALUES
 
 CREATE TABLE `companies` (
   `id` int NOT NULL,
-  `name` varchar(150) NOT NULL,
-  `city_id` int DEFAULT NULL
+  `name` varchar(150) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Дамп данных таблицы `companies`
 --
 
-INSERT INTO `companies` (`id`, `name`, `city_id`) VALUES
-(1, 'ПАО \"НК \"РОСНЕФТЬ\"', 1),
-(2, 'ПАО \"ЛУКОЙЛ\"', 1),
-(3, 'ОАО \"РЖД\"', 1);
+INSERT INTO `companies` (`id`, `name`) VALUES
+(1, 'ПАО \"НК \"РОСНЕФТЬ\"'),
+(2, 'ПАО \"ЛУКОЙЛ\"'),
+(3, 'ОАО \"РЖД\"');
 
 -- --------------------------------------------------------
 
@@ -89,8 +88,7 @@ CREATE TABLE `messages` (
 --
 
 INSERT INTO `messages` (`id`, `user_id`, `message`, `created_at`, `parent_id`, `upvotes`, `downvotes`, `city_id`, `company_id`, `type_id`, `office_id`) VALUES
-(12, 4, 'привет ставьте лайки', '2025-11-16 15:59:25', NULL, 2, 0, NULL, NULL, NULL, NULL),
-(28, 1, 'приветы', '2025-11-16 22:23:22', NULL, 2, 0, 1, 2, 1, 3);
+(12, 4, 'привет ставьте лайки', '2025-11-16 15:59:25', NULL, 3, 0, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -111,9 +109,8 @@ CREATE TABLE `message_votes` (
 
 INSERT INTO `message_votes` (`id`, `message_id`, `user_id`, `vote`) VALUES
 (86, 12, 4, 1),
-(88, 28, 4, 1),
-(93, 12, 1, 1),
-(99, 28, 1, 1);
+(101, 12, 6, 1),
+(146, 12, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -123,19 +120,19 @@ INSERT INTO `message_votes` (`id`, `message_id`, `user_id`, `vote`) VALUES
 
 CREATE TABLE `offices` (
   `id` int NOT NULL,
-  `name` varchar(150) NOT NULL,
   `address` text NOT NULL,
-  `company_id` int DEFAULT NULL
+  `company_id` int DEFAULT NULL,
+  `city_id` int NOT NULL DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Дамп данных таблицы `offices`
 --
 
-INSERT INTO `offices` (`id`, `name`, `address`, `company_id`) VALUES
-(1, 'Головной офис', 'ул. Тверская, 10, Москва', 1),
-(2, 'IT-отдел', 'пр. Мира, 25, Москва', 1),
-(3, 'Филиал СПб', 'Невский пр., 15, Санкт-Петербург', 2);
+INSERT INTO `offices` (`id`, `address`, `company_id`, `city_id`) VALUES
+(1, 'ул. Тверская, 10, Москва', 1, 1),
+(2, 'пр. Мира, 25, Москва', 1, 1),
+(3, 'Невский пр., 15, Санкт-Петербург', 2, 1);
 
 -- --------------------------------------------------------
 
@@ -179,7 +176,8 @@ INSERT INTO `users` (`id`, `username`, `password`, `created_at`, `role`) VALUES
 (2, 'jaja', '$2y$10$YsvvU.nIzEiuD0yPl8dwn.yL6ItL11fOFrahr66PxjjkL/ZLmb/QC', '2025-11-15 21:06:27', 'user'),
 (3, 'jajaja', '$2y$10$XTX7RJRGGsXyh3JIGBdajOhKsxVPUekrFxd15r8JbiXLcKH6GV6LK', '2025-11-15 21:10:18', 'user'),
 (4, 'admin', '$2y$10$ddn.dWe/SNE/Cw8ziGgRR.FqSaWkq5kNYoPT76HuR1jdoGycg.YLS', '2025-11-16 15:55:21', 'admin'),
-(5, 'сеня', '$2y$10$h3eVc3reAvurlDhiwFxGoueEOVj4EdCP5f/hQnlg1f.u83PEKTXd2', '2025-11-16 23:42:30', 'user');
+(5, 'сеня', '$2y$10$h3eVc3reAvurlDhiwFxGoueEOVj4EdCP5f/hQnlg1f.u83PEKTXd2', '2025-11-16 23:42:30', 'user'),
+(6, 'ghbdtn', '$2y$10$yMYEiCAp0inQuKNb57CR5uH4J55eQ0BxfPVranbqRs/U9XBd7Qw0G', '2025-11-17 13:15:31', 'user');
 
 --
 -- Индексы сохранённых таблиц
@@ -196,8 +194,7 @@ ALTER TABLE `cities`
 -- Индексы таблицы `companies`
 --
 ALTER TABLE `companies`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `city_id` (`city_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Индексы таблицы `messages`
@@ -224,7 +221,7 @@ ALTER TABLE `message_votes`
 --
 ALTER TABLE `offices`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `company_id` (`company_id`);
+  ADD KEY `fk_offices_city` (`city_id`);
 
 --
 -- Индексы таблицы `suggestion_types`
@@ -259,13 +256,13 @@ ALTER TABLE `companies`
 -- AUTO_INCREMENT для таблицы `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT для таблицы `message_votes`
 --
 ALTER TABLE `message_votes`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
 
 --
 -- AUTO_INCREMENT для таблицы `offices`
@@ -283,17 +280,11 @@ ALTER TABLE `suggestion_types`
 -- AUTO_INCREMENT для таблицы `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Ограничения внешнего ключа сохраненных таблиц
 --
-
---
--- Ограничения внешнего ключа таблицы `companies`
---
-ALTER TABLE `companies`
-  ADD CONSTRAINT `companies_ibfk_1` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`) ON DELETE SET NULL;
 
 --
 -- Ограничения внешнего ключа таблицы `messages`
@@ -317,7 +308,7 @@ ALTER TABLE `message_votes`
 -- Ограничения внешнего ключа таблицы `offices`
 --
 ALTER TABLE `offices`
-  ADD CONSTRAINT `offices_ibfk_1` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_offices_city` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`) ON DELETE RESTRICT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
