@@ -1,9 +1,9 @@
 <?php
-// api.php — 100% рабочая версия (17.11.2025)
+// api.php (17.11.2025)
 
 session_start();
 
-// === ПОДКЛЮЧЕНИЕ К БД — САМОЕ ВАЖНОЕ! ===
+// === ПОДКЛЮЧЕНИЕ К БД  ===
 if (!file_exists('db.php')) {
     die(json_encode(['success' => false, 'error' => 'db.php not found']));
 }
@@ -99,7 +99,7 @@ if ($_POST['action'] ?? '' === 'update' && isset($_POST['id'], $_POST['message']
     exit;
 }
 
-// === НОВОЕ: Компании с офисами в городе ===
+// ===  Компании с офисами в городе ===
 if ($_GET['action'] === 'get_companies' && !empty($_GET['city_id'])) {
     $city_id = (int)$_GET['city_id'];
     $stmt = $pdo->prepare("
@@ -114,7 +114,7 @@ if ($_GET['action'] === 'get_companies' && !empty($_GET['city_id'])) {
     exit;
 }
 
-// === НОВОЕ: Офисы компании в городе ===
+// ===  Офисы компании в городе ===
 if ($_GET['action'] === 'get_offices' && !empty($_GET['company_id']) && !empty($_GET['city_id'])) {
     $company_id = (int)$_GET['company_id'];
     $city_id = (int)$_GET['city_id'];

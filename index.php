@@ -58,7 +58,7 @@ if ($_POST['message'] && isset($_POST['city_id']) && isset($_POST['company_id'])
     exit;
 }
 
-// === РЕНДЕР СООБЩЕНИЯ — ИСПРАВЛЕНО 100% (Edit + Delete теперь работают!) ===
+// === РЕНДЕР СООБЩЕНИЯ  ===
 function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
     global $pdo;
     $indent = $depth * 40;
@@ -78,7 +78,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
 
     $office_display = $msg['office_address'] ? htmlspecialchars($msg['office_address']) : '—';
 
-    // КНОПКИ EDIT И DELETE — ТЕПЕРЬ ВНУТРИ ПОТОКА И РАБОТАЮТ!
+    // КНОПКИ EDIT И DELETE
     $actions = ($is_admin || $msg['user_id'] == $current_user_id) ? "
         <div style='margin-top:10px; font-size:0.9em;'>
             <span class='edit-btn' style='cursor:pointer; color:#f39c12; margin-right:15px;' data-id='{$msg['id']}'>Редактировать</span>

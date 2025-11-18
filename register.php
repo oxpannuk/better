@@ -2,7 +2,7 @@
 $page_title = "Регистрация";
 require 'header.php';
 
-// Если пользователь уже авторизован — сразу кидаем на главную
+// Если пользователь уже авторизован — сразу кидает на главную
 if (isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit;
