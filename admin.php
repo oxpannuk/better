@@ -1,14 +1,23 @@
 <?php
 $page_title = "Админ-панель";
-require 'header.php';
 
+/* === СЕССИЯ И БД СРАЗУ === */
+session_start();
+require_once 'db.php';
+
+/* === ПРОВЕРКА АДМИНА === */
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? 'user') !== 'admin') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => 'Нет доступа']);
+        exit;
+    }
     header("Location: index.php");
     exit;
 }
 
 /* ===================================================================
-   AJAX — только для модерации сообщений
+   AJAX — удаление и редактирование сообщений (ДО ЛЮБОГО ВЫВОДА HTML!)
    =================================================================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
@@ -34,34 +43,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         }
         exit;
     }
+
+    echo json_encode(['success' => false]);
+    exit;
 }
 
 /* ===================================================================
-   ОБЫЧНЫЕ ФОРМЫ — справочники (с редиректом, без JSON)
+   ОБЫЧНЫЕ POST — справочники
    =================================================================== */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_action'])) {
-
-    // Города
-    if (isset($_POST['add_city'])) {
-        $name = trim($_POST['city_name'] ?? '');
-        if ($name) $pdo->prepare("INSERT INTO cities (name) VALUES (?)")->execute([$name]);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['add_city']) && trim($_POST['city_name'] ?? '')) {
+        $pdo->prepare("INSERT INTO cities (name) VALUES (?)")->execute([trim($_POST['city_name'])]);
     }
     if (isset($_POST['delete_city'])) {
-        $id = (int)$_POST['city_id'];
-        $pdo->prepare("DELETE FROM cities WHERE id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM cities WHERE id = ?")->execute([(int)$_POST['city_id']]);
     }
 
-    // Компании
-    if (isset($_POST['add_company'])) {
-        $name = trim($_POST['company_name'] ?? '');
-        if ($name) $pdo->prepare("INSERT INTO companies (name) VALUES (?)")->execute([$name]);
+    if (isset($_POST['add_company']) && trim($_POST['company_name'] ?? '')) {
+        $pdo->prepare("INSERT INTO companies (name) VALUES (?)")->execute([trim($_POST['company_name'])]);
     }
     if (isset($_POST['delete_company'])) {
-        $id = (int)$_POST['company_id'];
-        $pdo->prepare("DELETE FROM companies WHERE id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM companies WHERE id = ?")->execute([(int)$_POST['company_id']]);
     }
 
-    // Офисы
     if (isset($_POST['add_office'])) {
         $address = trim($_POST['office_address'] ?? '');
         $city_id = (int)($_POST['office_city_id'] ?? 0);
@@ -72,8 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_action'])) {
         }
     }
     if (isset($_POST['delete_office'])) {
-        $id = (int)$_POST['office_id'];
-        $pdo->prepare("DELETE FROM offices WHERE id = ?")->execute([$id]);
+        $pdo->prepare("DELETE FROM offices WHERE id = ?")->execute([(int)$_POST['office_id']]);
     }
 
     header("Location: admin.php");
@@ -81,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['ajax_action'])) {
 }
 
 /* ===================================================================
-   ДАННЫЕ
+   ДАННЫЕ ДЛЯ СТРАНИЦЫ
    =================================================================== */
 $cities = $pdo->query("SELECT * FROM cities ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 $companies = $pdo->query("SELECT * FROM companies ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
@@ -100,6 +103,11 @@ $messages = $pdo->query("
     JOIN users u ON m.user_id = u.id 
     ORDER BY m.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+
+/* ===================================================================
+   ТЕПЕРЬ ПОДКЛЮЧАЕМ ШАПКУ (после всей логики!)
+   =================================================================== */
+require 'header.php';
 ?>
 
 <h1 style="margin-bottom: 30px; color:#2c3e50;">Админ-панель</h1>
@@ -230,19 +238,19 @@ $messages = $pdo->query("
                 <th style="text-align:left;padding:15px;width:140px;">Автор</th>
                 <th style="text-align:left;padding:15px;width:160px;">Дата</th>
                 <th style="text-align:left;padding:15px;">Сообщение</th>
-                <th style="text-align:center;padding:15px;width:180px;">Действия</th>
+                <th style="text-align:center;padding:15px;width:200px;">Действия</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($messages as $msg): ?>
             <tr style="border-bottom:1px solid #eee;" data-id="<?= $msg['id'] ?>">
-                <td style="padding:15px; font-family:monospace;"><?= $msg['id'] ?></td>
+                <td style="padding:15px;font-family:monospace;"><?= $msg['id'] ?></td>
                 <td style="padding:15px;"><?= htmlspecialchars($msg['username']) ?></td>
-                <td style="padding:15px; color:#7f8c8d;"><?= date('d.m.Y H:i', strtotime($msg['created_at'])) ?></td>
+                <td style="padding:15px;color:#7f8c8d;"><?= date('d.m.Y H:i', strtotime($msg['created_at'])) ?></td>
                 <td style="padding:15px;" class="msg-text"><?= nl2br(htmlspecialchars($msg['message'])) ?></td>
-                <td style="padding:15px; text-align:center;">
-                    <button class="edit-btn" data-id="<?= $msg['id'] ?>" style="background:#f39c12; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; margin-right:8px;">Редактировать</button>
-                    <button class="delete-btn" data-id="<?= $msg['id'] ?>" style="background:#e74c3c; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Удалить</button>
+                <td style="padding:15px;text-align:center;">
+                    <button class="edit-btn" data-id="<?= $msg['id'] ?>" style="background:#f39c12;color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Редактировать</button>
+                    <button class="delete-btn" data-id="<?= $msg['id'] ?>" style="background:#e74c3c;color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Удалить</button>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -254,11 +262,13 @@ $messages = $pdo->query("
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('delete-btn')) {
         if (!confirm('Удалить сообщение и все ответы?')) return;
+
         const id = e.target.dataset.id;
         const row = e.target.closest('tr');
 
         fetch('admin.php', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: 'ajax_action=delete_message&id=' + id
         })
@@ -269,14 +279,15 @@ document.addEventListener('click', function(e) {
             } else {
                 alert('Ошибка удаления');
             }
-        });
+        })
+        .catch(() => alert('Ошибка сети'));
     }
 
     if (e.target.classList.contains('edit-btn')) {
         const id = e.target.dataset.id;
         const row = e.target.closest('tr');
         const cell = row.querySelector('.msg-text');
-        const currentHTML = cell.innerHTML;
+        const originalHTML = cell.innerHTML;
         const currentText = cell.textContent.trim();
 
         const textarea = document.createElement('textarea');
@@ -291,7 +302,7 @@ document.addEventListener('click', function(e) {
         cancelBtn.textContent = 'Отмена';
         cancelBtn.style.cssText = 'margin-top:10px; margin-left:10px; padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; cursor:pointer;';
 
-        cancelBtn.onclick = () => cell.innerHTML = currentHTML;
+        cancelBtn.onclick = () => cell.innerHTML = originalHTML;
 
         saveBtn.onclick = () => {
             const newText = textarea.value.trim();
@@ -299,6 +310,7 @@ document.addEventListener('click', function(e) {
 
             fetch('admin.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'ajax_action=update_message&id=' + id + '&message=' + encodeURIComponent(newText)
             })
@@ -308,9 +320,10 @@ document.addEventListener('click', function(e) {
                     cell.innerHTML = data.html;
                 } else {
                     alert('Ошибка');
-                    cell.innerHTML = currentHTML;
+                    cell.innerHTML = originalHTML;
                 }
-            });
+            })
+            .catch(() => alert('Ошибка сети'));
         };
 
         cell.innerHTML = '';
