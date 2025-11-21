@@ -35,14 +35,15 @@ $sql = "SELECT m.*, u.username, c.name as city_name, comp.name as company_name, 
         LEFT JOIN offices o ON m.office_id = o.id 
         LEFT JOIN suggestion_types t ON m.type_id = t.id 
         $where_sql 
+        AND m.parent_id IS NULL
         ORDER BY $order_by";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $messages = $stmt->fetchAll();
 
-// === Добавление предложения ===
-if ($_POST['message'] && isset($_POST['city_id']) && isset($_POST['company_id']) && isset($_POST['office_id']) && isset($_POST['type_id'])) {
+// === Добавление ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['message'])) {
     $message = trim(htmlspecialchars($_POST['message']));
     $city_id = (int)$_POST['city_id'];
     $company_id = (int)$_POST['company_id'];
@@ -52,13 +53,14 @@ if ($_POST['message'] && isset($_POST['city_id']) && isset($_POST['company_id'])
     if ($message && $city_id && $company_id && $office_id && $type_id) {
         $stmt = $pdo->prepare("INSERT INTO messages (user_id, message, city_id, company_id, office_id, type_id) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$user_id, $message, $city_id, $company_id, $office_id, $type_id]);
+        
+        $query = http_build_query($_GET);
+        header("Location: index.php?$query");
+        exit;
     }
-    $query = http_build_query($_GET);
-    header("Location: index.php?$query");
-    exit;
 }
 
-// === РЕНДЕР СООБЩЕНИЯ  ===
+// === РЕНДЕР ===
 function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
     global $pdo;
     $indent = $depth * 40;
@@ -76,147 +78,114 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
         ? '<span style="background:#27ae60; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; margin-left:8px;">Предложение</span>'
         : '<span style="background:#e74c3c; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; margin-left:8px;">Жалоба</span>';
 
-    $office_display = $msg['office_address'] ? htmlspecialchars($msg['office_address']) : '—';
+    echo '<div class="message-item" data-id="'.$msg['id'].'" style="background:white; padding:20px; margin-bottom:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-left:'.$indent.'px;">';
+    echo '<div style="display:flex; gap:20px; align-items:flex-start;">';
+    echo '<div class="vote-block" style="text-align:center; min-width:60px;">';
+    echo '<i class="fas fa-caret-up upvote-btn" style="font-size:2.4em; color:'.$up_color.'; cursor:pointer;" data-id="'.$msg['id'].'"></i>';
+    echo '<div class="vote-score" style="font-size:1.6em; font-weight:bold; margin:8px 0; color:'.$score_color.';">'.$score.'</div>';
+    echo '<i class="fas fa-caret-down downvote-btn" style="font-size:2.4em; color:'.$down_color.'; cursor:pointer;" data-id="'.$msg['id'].'"></i>';
+    echo '</div>';
 
-    // КНОПКИ EDIT И DELETE
-    $actions = ($is_admin || $msg['user_id'] == $current_user_id) ? "
-        <div style='margin-top:10px; font-size:0.9em;'>
-            <span class='edit-btn' style='cursor:pointer; color:#f39c12; margin-right:15px;' data-id='{$msg['id']}'>Редактировать</span>
-            <span class='delete-btn' style='cursor:pointer; color:#e74c3c;' data-id='{$msg['id']}'>Удалить</span>
-        </div>
-    " : '';
+    echo '<div style="flex:1;">';
+    echo '<div style="margin-bottom:10px;">';
+    echo '<strong>'.htmlspecialchars($msg['username']).'</strong> • ';
+    echo '<span style="color:#7f8c8d;">'.date('d.m.Y H:i', strtotime($msg['created_at'])).'</span> '.$badge;
+    echo '</div>';
 
-    $vote_block = "
-        <div class='vote-block' data-id='{$msg['id']}' style='display:flex; flex-direction:column; align-items:center; margin-right:16px; font-size:1.3em; font-weight:bold;'>
-            <span class='upvote-btn' style='cursor:pointer; color:$up_color;'>+</span>
-            <span class='vote-score' style='color:$score_color; margin:4px 0;'>$score</span>
-            <span class='downvote-btn' style='cursor:pointer; color:$down_color;'>−</span>
-        </div>
-    ";
+    echo '<div class="message-text" data-id="'.$msg['id'].'" style="margin:15px 0; line-height:1.6; word-break:break-word;">'.nl2br(htmlspecialchars($msg['message'])).'</div>';
 
-    return "
-        <div class='message-item' data-id='{$msg['id']}' style='display:flex; background:#fff; padding:15px; margin:12px 0; margin-left:{$indent}px; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,0.08); border-left:4px solid #3498db;'>
-            $vote_block
-            <div style='flex:1;'>
-                <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;'>
-                    <div>
-                        <strong style='color:#3498db;'>".htmlspecialchars($msg['username'])."</strong>
-                        <span style='color:#7f8c8d; font-size:0.85em; margin-left:8px;'>{$msg['city_name']} → {$msg['company_name']} → {$office_display}</span>
-                        $badge
-                    </div>
-                    <span style='color:#7f8c8d; font-size:0.85em;'>".date('d.m H:i', strtotime($msg['created_at']))."</span>
-                </div>
-                <div class='message-text' data-id='{$msg['id']}'>".nl2br(htmlspecialchars($msg['message']))."</div>
-                $actions <!-- ← КНОПКИ ЗДЕСЬ, ВНУТРИ СООБЩЕНИЯ → JS ВИДИТ! -->
-            </div>
-        </div>
-    ";
+    echo '<div style="color:#7f8c8d; font-size:0.95em;">';
+    if ($msg['city_name']) echo 'Город: '.htmlspecialchars($msg['city_name']).' | ';
+    if ($msg['company_name']) echo 'Компания: '.htmlspecialchars($msg['company_name']).' | ';
+    if ($msg['office_address']) echo 'Офис: '.htmlspecialchars($msg['office_address']).' | ';
+    if ($msg['type_name']) echo 'Тип: '.htmlspecialchars($msg['type_name']);
+    echo '</div>';
+
+    if ($is_admin || $msg['user_id'] == $current_user_id) {
+        echo '<div class="message-actions" style="margin-top:15px; font-size:1.5em;">';
+        echo '<i class="fas fa-edit edit-btn" style="cursor:pointer; color:#f39c12; margin-right:20px;" data-id="'.$msg['id'].'"></i>';
+        echo '<i class="fas fa-trash-alt delete-btn" style="cursor:pointer; color:#e74c3c;" data-id="'.$msg['id'].'"></i>';
+        echo '</div>';
+    }
+
+    echo '</div></div></div>';
+
+    // Ответы
+    $reply_stmt = $pdo->prepare("SELECT m.*, u.username, c.name as city_name, comp.name as company_name, o.address as office_address, t.name as type_name 
+                                 FROM messages m 
+                                 JOIN users u ON m.user_id = u.id 
+                                 LEFT JOIN cities c ON m.city_id = c.id 
+                                 LEFT JOIN companies comp ON m.company_id = comp.id 
+                                 LEFT JOIN offices o ON m.office_id = o.id 
+                                 LEFT JOIN suggestion_types t ON m.type_id = t.id 
+                                 WHERE m.parent_id = ? ORDER BY m.created_at ASC");
+    $reply_stmt->execute([$msg['id']]);
+    $replies = $reply_stmt->fetchAll();
+
+    foreach ($replies as $reply) {
+        renderMessage($reply, $current_user_id, $is_admin, $depth + 1);
+    }
 }
-
-$cities = $pdo->query("SELECT * FROM cities ORDER BY name")->fetchAll();
 ?>
 
-<h1 style="text-align:center; margin:40px 0 20px; color:#2c3e50;">Что улучшить в офисе?</h1>
-
-<!-- ФОРМА ДОБАВЛЕНИЯ -->
-<form method="POST" style="margin:25px 0; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:15px;">
-        <div>
-            <label style="display:block; margin-bottom:5px; font-weight:600;">Город *</label>
-            <select name="city_id" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+<!-- ФОРМА -->
+<div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:40px;">
+    <h2 style="margin-bottom:25px; color:#2c3e50;">Новое предложение или жалоба</h2>
+    <form method="POST">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom:20px;">
+            <select name="city_id" id="city-select" required>
                 <option value="">Выберите город</option>
-                <?php foreach ($cities as $c): ?>
-                    <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
-                <?php endforeach; ?>
+                <?php
+                $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
+                foreach ($cities as $c) {
+                    $sel = $c['id'] == $city_id ? 'selected' : '';
+                    echo "<option value=\"{$c['id']}\" $sel>{$c['name']}</option>";
+                }
+                ?>
             </select>
-        </div>
-        <div>
-            <label style="display:block; margin-bottom:5px; font-weight:600;">Компания *</label>
-            <select name="company_id" required onchange="loadOffices(this.value)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
-                <option value="">Загрузка компаний...</option>
-            </select>
-        </div>
-        <div>
-            <label style="display:block; margin-bottom:5px; font-weight:600;">Офис *</label>
-            <select name="office_id" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
-                <option value="">Сначала выберите компанию</option>
-            </select>
-        </div>
-    </div>
-    <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:600;">Тип *</label>
-        <select name="type_id" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
-            <option value="">Выберите тип</option>
-            <option value="1">Предложение</option>
-            <option value="2">Жалоба</option>
-        </select>
-    </div>
-    <textarea name="message" placeholder="Опишите подробно..." required style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd; height:120px; font-size:16px; margin-bottom:10px;"></textarea>
-    <button type="submit" style="background:#27ae60; color:white; padding:12px 24px; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:15px;">Отправить</button>
-</form>
 
-<!-- ФИЛЬТРЫ И СООБЩЕНИЯ -->
-<div id="messages-container">
-    <?php
-    foreach ($messages as $msg) {
-        if (!$msg['parent_id']) {
-            echo renderMessage($msg, $user_id, $is_admin);
-            $replies = $pdo->prepare("SELECT m.*, u.username, c.name as city_name, comp.name as company_name, o.address as office_address, t.name as type_name 
-                                      FROM messages m 
-                                      JOIN users u ON m.user_id = u.id 
-                                      LEFT JOIN cities c ON m.city_id = c.id 
-                                      LEFT JOIN companies comp ON m.company_id = comp.id 
-                                      LEFT JOIN offices o ON m.office_id = o.id 
-                                      LEFT JOIN suggestion_types t ON m.type_id = t.id 
-                                      WHERE parent_id = ? ORDER BY m.created_at ASC");
-            $replies->execute([$msg['id']]);
-            foreach ($replies->fetchAll() as $reply) {
-                echo renderMessage($reply, $user_id, $is_admin, 1);
-            }
-        }
-    }
-    if (empty($messages)) {
-        echo '<p style="text-align:center; color:#95a5a6; font-style:italic; padding:40px 20px;">Нет предложений. Будьте первым!</p>';
-    }
-    ?>
+            <select name="company_id" id="company-select" required>
+                <option value="">Выберите компанию</option>
+            </select>
+
+            <select name="office_id" id="office-select" required>
+                <option value="">Выберите офис</option>
+            </select>
+
+            <select name="type_id" required>
+                <option value="">Тип сообщения</option>
+                <?php
+                $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
+                foreach ($types as $t) {
+                    $sel = $t['id'] == $type_id ? 'selected' : '';
+                    echo "<option value=\"{$t['id']}\" $sel>{$t['name']}</option>";
+                }
+                ?>
+            </select>
+        </div>
+
+        <textarea name="message" placeholder="Текст..." required style="width:100%; min-height:140px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin-bottom:20px;"></textarea>
+
+        <button type="submit" style="padding:14px 32px; background:#3498db; color:white; border:none; border-radius:8px; font-size:18px; cursor:pointer;">Отправить</button>
+    </form>
+</div>
+
+<div id="messages-list">
+    <?php foreach ($messages as $msg): ?>
+        <?php renderMessage($msg, $user_id, $is_admin); ?>
+    <?php endforeach; ?>
 </div>
 
 <script>
-// Загрузка компаний при открытии страницы
-fetch('api.php?action=get_companies')
-    .then(r => r.json())
-    .then(data => {
-        const select = document.querySelector('[name="company_id"]');
-        select.innerHTML = '<option value="">Выберите компанию</option>';
-        data.forEach(c => {
-            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-        });
-    });
-
-// Загрузка офисов
-function loadOffices(companyId) {
-    const officeSelect = document.querySelector('[name="office_id"]');
-    officeSelect.innerHTML = '<option value="">Загрузка офисов...</option>';
-    if (!companyId) return;
-
-    fetch(`api.php?action=get_offices&company_id=${companyId}`)
-        .then(r => r.json())
-        .then(data => {
-            officeSelect.innerHTML = '<option value="">Выберите офис</option>';
-            data.forEach(o => {
-                officeSelect.innerHTML += `<option value="${o.id}">${o.address}</option>`;
-            });
-        });
-}
-
-// Основной обработчик кликов — Edit, Delete, Vote
+// ДЕЛЕГИРОВАННЫЙ ОБРАБОТЧИК — РАБОТАЕТ НА ВСЕХ СООБЩЕНИЯ, ВКЛЮЧАЯ ОТВЕТЫ
 document.addEventListener('click', function(e) {
+    const target = e.target;
 
     // ГОЛОСОВАНИЕ
-    if (e.target.classList.contains('upvote-btn') || e.target.classList.contains('downvote-btn')) {
-        const block = e.target.closest('.vote-block');
-        const id = block.dataset.id;
-        const vote = e.target.classList.contains('upvote-btn') ? 'up' : 'down';
+    if (target.classList.contains('upvote-btn') || target.classList.contains('downvote-btn')) {
+        const isUp = target.classList.contains('upvote-btn');
+        const id = target.dataset.id;
+        const vote = isUp ? 'up' : 'down';
 
         fetch('api.php', {
             method: 'POST',
@@ -226,17 +195,29 @@ document.addEventListener('click', function(e) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
+                const block = target.closest('.vote-block');
                 block.querySelector('.vote-score').textContent = data.score;
-                block.querySelector('.upvote-btn').style.color = vote === 'up' ? '#16a085' : '#95a5a6';
-                block.querySelector('.downvote-btn').style.color = vote === 'down' ? '#c0392b' : '#95a5a6';
+
+                // Сбрасываем цвета
+                block.querySelector('.upvote-btn').style.color = '#95a5a6';
+                block.querySelector('.downvote-btn').style.color = '#95a5a6';
+
+                // Подсвечиваем текущий голос
+                if (isUp) {
+                    block.querySelector('.upvote-btn').style.color = '#16a085';
+                } else {
+                    block.querySelector('.downvote-btn').style.color = '#c0392b';
+                }
+            } else {
+                alert('Ошибка голосования');
             }
         });
     }
 
     // УДАЛЕНИЕ
-    if (e.target.classList.contains('delete-btn')) {
-        if (!confirm('Удалить это сообщение и все ответы?')) return;
-        const id = e.target.dataset.id;
+    if (target.classList.contains('delete-btn')) {
+        if (!confirm('Удалить сообщение и все ответы?')) return;
+        const id = target.dataset.id;
 
         fetch('api.php', {
             method: 'POST',
@@ -246,43 +227,37 @@ document.addEventListener('click', function(e) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                // Удаляем и родительское, и все ответы
-                document.querySelectorAll(`.message-item[data-id="${id}"]`).forEach(el => el.remove());
-                // Также удаляем ответы (у них parent_id = id)
-                document.querySelectorAll(`.message-item`).forEach(el => {
-                    if (el.innerHTML.includes(`data-id="${id}"`)) el.remove();
-                });
+                location.reload();
+            } else {
+                alert('Ошибка удаления');
             }
         });
     }
 
     // РЕДАКТИРОВАНИЕ
-    if (e.target.classList.contains('edit-btn')) {
-        const id = e.target.dataset.id;
+    if (target.classList.contains('edit-btn')) {
+        const id = target.dataset.id;
         const textDiv = document.querySelector(`.message-text[data-id="${id}"]`);
         const currentText = textDiv.textContent.trim();
+        const originalHTML = textDiv.innerHTML;
 
         const textarea = document.createElement('textarea');
         textarea.value = currentText;
-        textarea.style.width = '100%';
-        textarea.style.minHeight = '80px';
-        textarea.style.padding = '8px';
-        textarea.style.border = '1px solid #ddd';
-        textarea.style.borderRadius = '6px';
+        textarea.style.cssText = 'width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin:10px 0;';
 
         const saveBtn = document.createElement('button');
         saveBtn.textContent = 'Сохранить';
-        saveBtn.style.marginTop = '8px';
-        saveBtn.style.padding = '8px 16px';
-        saveBtn.style.background = '#27ae60';
-        saveBtn.style.color = 'white';
-        saveBtn.style.border = 'none';
-        saveBtn.style.borderRadius = '6px';
-        saveBtn.style.cursor = 'pointer';
+        saveBtn.style.cssText = 'padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:6px;';
 
-        saveBtn.onclick = function() {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Отмена';
+        cancelBtn.style.cssText = 'padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; margin-left:10px;';
+
+        cancelBtn.onclick = () => textDiv.innerHTML = originalHTML;
+
+        saveBtn.onclick = () => {
             const newText = textarea.value.trim();
-            if (!newText) return;
+            if (!newText) return alert('Пустое сообщение');
 
             fetch('api.php', {
                 method: 'POST',
@@ -292,17 +267,66 @@ document.addEventListener('click', function(e) {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    textDiv.innerHTML = data.message; // nl2br уже в api.php
-                } else {
-                    alert('Ошибка сохранения');
+                    textDiv.innerHTML = data.message;
                 }
             });
         };
 
         textDiv.innerHTML = '';
         textDiv.appendChild(textarea);
+        textDiv.appendChild(document.createElement('br'));
         textDiv.appendChild(saveBtn);
+        textDiv.appendChild(cancelBtn);
     }
+});
+
+// Зависимые селекты (работают идеально)
+function loadCompanies() {
+    const cityId = document.getElementById('city-select').value;
+    const companySelect = document.getElementById('company-select');
+    const officeSelect = document.getElementById('office-select');
+
+    companySelect.innerHTML = '<option value="">Загрузка...</option>';
+    officeSelect.innerHTML = '<option value="">Сначала выберите компанию</option>';
+
+    if (!cityId) return;
+
+    fetch(`api.php?action=get_companies&city_id=${cityId}`)
+        .then(r => r.json())
+        .then(data => {
+            companySelect.innerHTML = '<option value="">Выберите компанию</option>';
+            data.forEach(c => {
+                companySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        });
+}
+
+function loadOffices() {
+    const companyId = document.getElementById('company-select').value;
+    const cityId = document.getElementById('city-select').value;
+    const officeSelect = document.getElementById('office-select');
+
+    officeSelect.innerHTML = '<option value="">Загрузка...</option>';
+
+    if (!companyId || !cityId) return;
+
+    fetch(`api.php?action=get_offices&company_id=${companyId}&city_id=${cityId}`)
+        .then(r => r.json())
+        .then(data => {
+            officeSelect.innerHTML = '<option value="">Выберите офис</option>';
+            data.forEach(o => {
+                officeSelect.innerHTML += `<option value="${o.id}">${o.address}</option>`;
+            });
+        });
+}
+
+document.getElementById('city-select').addEventListener('change', loadCompanies);
+document.getElementById('company-select').addEventListener('change', loadOffices);
+
+// Автозагрузка при открытии страницы
+window.addEventListener('load', () => {
+    if (document.getElementById('city-select').value) loadCompanies();
+    if (document.getElementById('company-select').value) loadOffices();
 });
 </script>
 
