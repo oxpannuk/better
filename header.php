@@ -12,7 +12,7 @@ require_once 'db.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?? 'Гостевая книга' ?></title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="icon" href="data:,">
+    <link rel="icon" type="image/png" href="img/logo.png">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
         body { background:#f8f9fa; color:#333; line-height:1.6; }
