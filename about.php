@@ -9,12 +9,12 @@
 <p>Проект "better." был запущен в 2025 году как простая гостевая книга для офисов. С тех пор мы добавили авторизацию, голосование, фильтры по городам и компаниям, а также админ-панель. Мы продолжаем развиваться, чтобы стать незаменимым инструментом для корпоративной культуры.</p>
 
 <h2>Наши преимущества</h2>
-<ul>
-    <li><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Анонимные предложения (опционально).</li>
-    <li><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Голосование и обсуждения в ветках.</li>
-    <li><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Фильтры по компаниям, офисам и типам сообщений.</li>
-    <li><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Безопасная авторизация и защита от спама.</li>
-</ul>
+<dl>
+    <dt><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Анонимные предложения (опционально).</dt>
+    <dt><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Голосование и обсуждения в ветках.</dt>
+    <dt><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Фильтры по компаниям, офисам и типам сообщений.</dt>
+    <dt><i class="fas fa-check-circle" style="color:#27ae60; margin-right:8px;"></i>Безопасная авторизация и защита от спама.</dt>
+</dl>
 
 <h2>Наша команда</h2>
 <p>Мы — небольшая команда энтузиастов из IT и HR. Если вы хотите присоединиться или предложить сотрудничество, напишите нам!</p>
