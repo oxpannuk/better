@@ -69,63 +69,49 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
     $vote_stmt->execute([$msg['id'], $current_user_id]);
     $user_vote = $vote_stmt->fetchColumn() ?: 0;
 
-    $up_color = $user_vote === 1 ? '#16a085' : '#95a5a6';
-    $down_color = $user_vote === -1 ? '#c0392b' : '#95a5a6';
-    $score = $msg['upvotes'] - $msg['downvotes'];
-    $score_color = $score > 0 ? '#16a085' : ($score < 0 ? '#c0392b' : '#95a5a6');
-
-    $badge = $msg['type_name'] === 'Предложение' 
-        ? '<span style="background:#27ae60; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; margin-left:8px;">Предложение</span>'
-        : '<span style="background:#e74c3c; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; margin-left:8px;">Жалоба</span>';
-
-    echo '<div class="message-item" data-id="'.$msg['id'].'" style="background:white; padding:20px; margin-bottom:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-left:'.$indent.'px;">';
-    echo '<div style="display:flex; gap:20px; align-items:flex-start;">';
-    echo '<div class="vote-block" style="text-align:center; min-width:60px;">';
-    echo '<i class="fas fa-caret-up upvote-btn" style="font-size:2.4em; color:'.$up_color.'; cursor:pointer;" data-id="'.$msg['id'].'"></i>';
-    echo '<div class="vote-score" style="font-size:1.6em; font-weight:bold; margin:8px 0; color:'.$score_color.';">'.$score.'</div>';
-    echo '<i class="fas fa-caret-down downvote-btn" style="font-size:2.4em; color:'.$down_color.'; cursor:pointer;" data-id="'.$msg['id'].'"></i>';
-    echo '</div>';
-
-    echo '<div style="flex:1;">';
-    echo '<div style="margin-bottom:10px;">';
-    echo '<strong>'.htmlspecialchars($msg['username']).'</strong> • ';
-    echo '<span style="color:#7f8c8d;">'.date('d.m.Y H:i', strtotime($msg['created_at'])).'</span> '.$badge;
-    echo '</div>';
-
-    echo '<div class="message-text" data-id="'.$msg['id'].'" style="margin:15px 0; line-height:1.6; word-break:break-word;">'.nl2br(htmlspecialchars($msg['message'])).'</div>';
-
-    echo '<div style="color:#7f8c8d; font-size:0.95em;">';
-    if ($msg['city_name']) echo 'Город: '.htmlspecialchars($msg['city_name']).' | ';
-    if ($msg['company_name']) echo 'Компания: '.htmlspecialchars($msg['company_name']).' | ';
-    if ($msg['office_address']) echo 'Офис: '.htmlspecialchars($msg['office_address']).' | ';
-    if ($msg['type_name']) echo 'Тип: '.htmlspecialchars($msg['type_name']);
-    echo '</div>';
-
-    if ($is_admin || $msg['user_id'] == $current_user_id) {
-        echo '<div class="message-actions" style="margin-top:15px; font-size:1.5em;">';
-        echo '<i class="fas fa-edit edit-btn" style="cursor:pointer; color:#f39c12; margin-right:20px;" data-id="'.$msg['id'].'"></i>';
-        echo '<i class="fas fa-trash-alt delete-btn" style="cursor:pointer; color:#e74c3c;" data-id="'.$msg['id'].'"></i>';
-        echo '</div>';
-    }
-
-    echo '</div></div></div>';
-
-    // Ответы
-    $reply_stmt = $pdo->prepare("SELECT m.*, u.username, c.name as city_name, comp.name as company_name, o.address as office_address, t.name as type_name 
-                                 FROM messages m 
-                                 JOIN users u ON m.user_id = u.id 
-                                 LEFT JOIN cities c ON m.city_id = c.id 
-                                 LEFT JOIN companies comp ON m.company_id = comp.id 
-                                 LEFT JOIN offices o ON m.office_id = o.id 
-                                 LEFT JOIN suggestion_types t ON m.type_id = t.id 
-                                 WHERE m.parent_id = ? ORDER BY m.created_at ASC");
-    $reply_stmt->execute([$msg['id']]);
-    $replies = $reply_stmt->fetchAll();
-
-    foreach ($replies as $reply) {
+    echo '
+    <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-weight:bold; color:#3498db;">' . htmlspecialchars($msg['username']) . '</span>
+            <span style="color:#95a5a6; font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
+        </div>
+        
+        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px;">' . nl2br(htmlspecialchars($msg['message'])) . '</div>
+        
+        <div style="color:#7f8c8d; font-size:0.9em; margin-bottom:10px;">
+            <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>' . htmlspecialchars($msg['city_name'] ?? 'Не указан') . ' &middot; 
+            <i class="fas fa-building" style="margin-right:5px;"></i>' . htmlspecialchars($msg['company_name'] ?? 'Не указана') . ' &middot; 
+            <i class="fas fa-home" style="margin-right:5px;"></i>' . htmlspecialchars($msg['office_address'] ?? 'Не указан') . ' &middot; 
+            <i class="fas fa-tag" style="margin-right:5px;"></i>' . htmlspecialchars($msg['type_name'] ?? 'Не указан') . '
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button class="upvote-btn" onclick="vote(' . $msg['id'] . ', \'up\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === 1 ? '#16a085' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
+            <span class="score" style="font-weight:bold; color:#34495e;">' . ($msg['upvotes'] - $msg['downvotes']) . '</span>
+            <button class="downvote-btn" onclick="vote(' . $msg['id'] . ', \'down\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === -1 ? '#c0392b' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
+            
+            ' . ($is_admin || $msg['user_id'] == $current_user_id ? '
+            <button class="edit-btn" onclick="editMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#f39c12; margin-left:10px;"><i class="fas fa-edit"></i> Редактировать</button>
+            <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#e74c3c; margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
+            ' : '') . '
+            
+            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
+        </div>
+        
+        <div id="reply-form-' . $msg['id'] . '" style="display:none; margin-top:15px;">
+            <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
+            <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
+        </div>
+    </div>';
+    
+    // Рекурсия для ответов
+    $replies_stmt = $pdo->prepare("SELECT m.*, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE parent_id = ? ORDER BY created_at ASC");
+    $replies_stmt->execute([$msg['id']]);
+    foreach ($replies_stmt->fetchAll() as $reply) {
         renderMessage($reply, $current_user_id, $is_admin, $depth + 1);
     }
 }
+
 ?>
 
 <!-- ФОРМА -->
@@ -177,110 +163,189 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
 </div>
 
 <script>
-// ДЕЛЕГИРОВАННЫЙ ОБРАБОТЧИК — РАБОТАЕТ НА ВСЕХ СООБЩЕНИЯ, ВКЛЮЧАЯ ОТВЕТЫ
-document.addEventListener('click', function(e) {
-    const target = e.target;
+// ГОЛОСОВАНИЕ С TOGGLE
+function vote(id, type) {
+    console.log(`Нажата кнопка ${type} для сообщения ${id}`); // Отладка
 
-    // ГОЛОСОВАНИЕ
-    if (target.classList.contains('upvote-btn') || target.classList.contains('downvote-btn')) {
-        const isUp = target.classList.contains('upvote-btn');
-        const id = target.dataset.id;
-        const vote = isUp ? 'up' : 'down';
+    const msgEl = document.getElementById(`msg-${id}`);
+    let currentVote = parseInt(msgEl.dataset.userVote || '0');
+    
+    let newVote;
+    if (type === 'up') {
+        newVote = currentVote === 1 ? 0 : 1;
+    } else {
+        newVote = currentVote === -1 ? 0 : -1;
+    }
+    
+    let postData;
+    if (newVote === 0) {
+        postData = `action=vote&message_id=${id}&vote=remove`;
+    } else {
+        let voteType = newVote === 1 ? 'up' : 'down';
+        postData = `action=vote&message_id=${id}&vote=${voteType}`;
+    }
+    
+    console.log(`Отправка: ${postData}`); // Отладка
+    
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: postData,
+        credentials: 'same-origin' // Добавлено для сессии
+    })
+    .then(r => {
+        return r.text().then(text => {
+            console.log('Raw response from api.php:', text); // Отладка: покажет полный ответ
+            if (!r.ok) throw new Error('HTTP error: ' + r.status);
+            return JSON.parse(text);
+        });
+    })
+    .then(data => {
+        console.log('Ответ API:', data); // Отладка
+        if (data.success) {
+            const scoreEl = msgEl.querySelector('.score');
+            scoreEl.textContent = data.score;
+            
+            const upBtn = msgEl.querySelector('.upvote-btn');
+            const downBtn = msgEl.querySelector('.downvote-btn');
+            upBtn.style.color = newVote === 1 ? '#16a085' : '#bdc3c7';
+            downBtn.style.color = newVote === -1 ? '#c0392b' : '#bdc3c7';
+            
+            msgEl.dataset.userVote = newVote;
+        } else {
+            alert('Ошибка API: ' + (data.error || 'Неизвестно'));
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        alert('Ошибка при голосовании. Проверьте консоль (F12).');
+    });
+}
+
+// УДАЛЕНИЕ
+function deleteMessage(id) {
+    if (!confirm('Удалить сообщение и все ответы?')) return;
+    
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=delete&id=${id}`,
+        credentials: 'same-origin' // Добавлено
+    })
+    .then(r => {
+        return r.text().then(text => {
+            console.log('Raw response from api.php for delete:', text); // Добавлена отладка
+            if (!r.ok) throw new Error('HTTP error: ' + r.status);
+            return JSON.parse(text);
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`msg-${id}`).remove(); // Удаляем без reload
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестно'));
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка удаления:', error);
+        alert('Ошибка сети.');
+    });
+}
+
+// РЕДАКТИРОВАНИЕ
+function editMessage(id) {
+    const textDiv = document.querySelector(`#msg-${id} .msg-text`);
+    const originalHTML = textDiv.innerHTML;
+    const currentText = textDiv.textContent.trim();
+
+    const textarea = document.createElement('textarea');
+    textarea.value = currentText;
+    textarea.style.cssText = 'width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Сохранить';
+    saveBtn.style.cssText = 'margin-top:10px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:6px; cursor:pointer;';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Отмена';
+    cancelBtn.style.cssText = 'margin-top:10px; margin-left:10px; padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; cursor:pointer;';
+
+    cancelBtn.onclick = () => textDiv.innerHTML = originalHTML;
+
+    saveBtn.onclick = () => {
+        const newText = textarea.value.trim();
+        if (!newText) return alert('Пустое сообщение');
 
         fetch('api.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=vote&message_id=${id}&vote=${vote}`
+            body: `action=update&id=${id}&message=${encodeURIComponent(newText)}`,
+            credentials: 'same-origin' // Добавлено
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                const block = target.closest('.vote-block');
-                block.querySelector('.vote-score').textContent = data.score;
-
-                // Сбрасываем цвета
-                block.querySelector('.upvote-btn').style.color = '#95a5a6';
-                block.querySelector('.downvote-btn').style.color = '#95a5a6';
-
-                // Подсвечиваем текущий голос
-                if (isUp) {
-                    block.querySelector('.upvote-btn').style.color = '#16a085';
-                } else {
-                    block.querySelector('.downvote-btn').style.color = '#c0392b';
-                }
-            } else {
-                alert('Ошибка голосования');
-            }
-        });
-    }
-
-    // УДАЛЕНИЕ
-    if (target.classList.contains('delete-btn')) {
-        if (!confirm('Удалить сообщение и все ответы?')) return;
-        const id = target.dataset.id;
-
-        fetch('api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=delete&id=${id}`
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Ошибка удаления');
-            }
-        });
-    }
-
-    // РЕДАКТИРОВАНИЕ
-    if (target.classList.contains('edit-btn')) {
-        const id = target.dataset.id;
-        const textDiv = document.querySelector(`.message-text[data-id="${id}"]`);
-        const currentText = textDiv.textContent.trim();
-        const originalHTML = textDiv.innerHTML;
-
-        const textarea = document.createElement('textarea');
-        textarea.value = currentText;
-        textarea.style.cssText = 'width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin:10px 0;';
-
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Сохранить';
-        saveBtn.style.cssText = 'padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:6px;';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Отмена';
-        cancelBtn.style.cssText = 'padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; margin-left:10px;';
-
-        cancelBtn.onclick = () => textDiv.innerHTML = originalHTML;
-
-        saveBtn.onclick = () => {
-            const newText = textarea.value.trim();
-            if (!newText) return alert('Пустое сообщение');
-
-            fetch('api.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=update&id=${id}&message=${encodeURIComponent(newText)}`
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    textDiv.innerHTML = data.message;
-                }
+        .then(r => {
+            return r.text().then(text => {
+                console.log('Raw response from api.php for edit:', text); // Добавлена отладка
+                if (!r.ok) throw new Error('HTTP error: ' + r.status);
+                return JSON.parse(text);
             });
-        };
+        })
+        .then(data => {
+            if (data.success) {
+                textDiv.innerHTML = data.message;
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестно'));
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка редактирования:', error);
+            alert('Ошибка сети.');
+        });
+    };
 
-        textDiv.innerHTML = '';
-        textDiv.appendChild(textarea);
-        textDiv.appendChild(document.createElement('br'));
-        textDiv.appendChild(saveBtn);
-        textDiv.appendChild(cancelBtn);
-    }
-});
+    textDiv.innerHTML = '';
+    textDiv.appendChild(textarea);
+    textDiv.appendChild(document.createElement('br'));
+    textDiv.appendChild(saveBtn);
+    textDiv.appendChild(cancelBtn);
+}
 
-// Зависимые селекты (работают идеально)
+// ОТВЕТЫ
+function toggleReply(id) {
+    const form = document.getElementById(`reply-form-${id}`);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function submitReply(id) {
+    const text = document.getElementById(`reply-text-${id}`).value.trim();
+    if (!text) return alert('Пустой ответ');
+
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=reply&parent_id=${id}&message=${encodeURIComponent(text)}`,
+        credentials: 'same-origin' // Добавлено
+    })
+    .then(r => {
+        return r.text().then(text => {
+            console.log('Raw response from api.php for reply:', text); // Добавлена отладка
+            if (!r.ok) throw new Error('HTTP error: ' + r.status);
+            return JSON.parse(text);
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Перезагрузка для показа ответа (можно улучшить позже)
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестно'));
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка ответа:', error);
+        alert('Ошибка сети.');
+    });
+}
+
+// Зависимые селекты (без изменений)
 function loadCompanies() {
     const cityId = document.getElementById('city-select').value;
     const companySelect = document.getElementById('company-select');
@@ -323,7 +388,7 @@ function loadOffices() {
 document.getElementById('city-select').addEventListener('change', loadCompanies);
 document.getElementById('company-select').addEventListener('change', loadOffices);
 
-// Автозагрузка при открытии страницы
+// Автозагрузка
 window.addEventListener('load', () => {
     if (document.getElementById('city-select').value) loadCompanies();
     if (document.getElementById('company-select').value) loadOffices();

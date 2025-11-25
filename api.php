@@ -1,5 +1,5 @@
 <?php
-// api.php — полностью исправленная и рабочая версия (21.11.2025)
+// api.php — полностью исправленная и рабочая версия (25.11.2025)
 
 session_start();
 
@@ -7,6 +7,10 @@ if (!file_exists('db.php')) {
     die(json_encode(['success' => false, 'error' => 'db.php not found']));
 }
 require_once 'db.php';
+
+// Подавляем вывод ошибок, чтобы не портили JSON (логируем в error_log)
+ini_set('display_errors', 0);
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 
 header('Content-Type: application/json');
 
@@ -62,16 +66,19 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_offices') {
 // ----------------- ГОЛОСОВАНИЕ (БЕЗ SQL-инъекции) -----------------
 if (($_POST['action'] ?? '') === 'vote' && isset($_POST['message_id'], $_POST['vote'])) {
     $message_id = (int)$_POST['message_id'];
-    $vote = $_POST['vote'] === 'up' ? 1 : -1;
+    $vote = $_POST['vote'];
 
-    // Удаляем предыдущий голос пользователя
+    // Удаляем предыдущий голос пользователя всегда
     $pdo->prepare("DELETE FROM message_votes WHERE message_id = ? AND user_id = ?")->execute([$message_id, $user_id]);
 
-    // Ставим новый
-    $pdo->prepare("INSERT INTO message_votes (message_id, user_id, vote) VALUES (?, ?, ?)")
-        ->execute([$message_id, $user_id, $vote]);
+    // Если не 'remove', ставим новый
+    if ($vote !== 'remove') {
+        $vote_val = $vote === 'up' ? 1 : -1;
+        $pdo->prepare("INSERT INTO message_votes (message_id, user_id, vote) VALUES (?, ?, ?)")
+            ->execute([$message_id, $user_id, $vote_val]);
+    }
 
-    // Пересчитываем
+    // Пересчитываем upvotes и downvotes
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM message_votes WHERE message_id = ? AND vote = 1");
     $stmt->execute([$message_id]);
     $up = $stmt->fetchColumn();
@@ -128,6 +135,21 @@ if (($_POST['action'] ?? '') === 'update' && isset($_POST['id'], $_POST['message
         ]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Пустое сообщение или нет прав']);
+    }
+    exit;
+}
+
+// ----------------- ОТВЕТЫ (добавлено) -----------------
+if (($_POST['action'] ?? '') === 'reply' && isset($_POST['parent_id'], $_POST['message'])) {
+    $parent_id = (int)$_POST['parent_id'];
+    $message = trim($_POST['message']);
+
+    if ($message) {
+        $pdo->prepare("INSERT INTO messages (user_id, message, parent_id) VALUES (?, ?, ?)")
+            ->execute([$user_id, $message, $parent_id]);
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Пустое сообщение']);
     }
     exit;
 }
