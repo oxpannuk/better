@@ -4,6 +4,51 @@
         &copy; <?= date('Y') ?> better. Все права защищены.
     </div>
 </footer>
+
+<style>
+    /* Simple and reliable footer solution */
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    main {
+        flex: 1 0 auto;
+        width: 100%;
+    }
+
+    footer {
+        flex-shrink: 0;
+        background: var(--header-bg);
+        color: var(--header-text);
+        text-align: center;
+        padding: 20px;
+        width: 100%;
+    }
+
+    /* Мобильная адаптивность для футера */
+    @media (max-width: 768px) {
+        footer {
+            padding: 15px;
+            font-size: 0.9em;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        footer {
+            padding: 12px;
+            font-size: 0.85em;
+        }
+    }
+</style>
+
 <script>
 // Управление темной темой
 const toggleSwitch = document.querySelector('#checkbox');
@@ -56,36 +101,5 @@ if (!currentTheme) {
     }
 }
 </script>
-<style>
-/* Simple and reliable footer solution */
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
-
-main {
-    flex: 1 0 auto;
-    /* Основной контент растягивается */
-    width: 100%;
-}
-
-footer {
-    flex-shrink: 0;
-    /* Футер не сжимается */
-    background: var(--header-bg);
-    color: var(--header-text);
-    text-align: center;
-    padding: 20px;
-    width: 100%;
-}
-</style>
 </body>
-
 </html>

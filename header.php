@@ -1,12 +1,9 @@
 <?php
-// УБЕРЕМ session_start() отсюда, так как он уже будет в других файлах
-// Просто проверяем статус сессии
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 require_once 'db.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="ru" data-theme="light">
 <head>
@@ -61,6 +58,7 @@ require_once 'db.php';
             background: var(--bg-color); 
             color: var(--text-color); 
             line-height:1.6; 
+            font-size: 16px;
         }
         
         header {
@@ -76,20 +74,22 @@ require_once 'db.php';
         .container { 
             max-width: 1200px; 
             margin: 0 auto; 
-            padding: 0 20px; 
+            padding: 0 15px; 
         }
         
         .nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .logo {
-            font-size: 1.8em;
+            font-size: 1.5em;
             font-weight: bold;
             color: var(--primary-color);
             text-decoration: none;
+            margin-bottom: 10px;
         }
         
         .logo i { 
@@ -98,8 +98,9 @@ require_once 'db.php';
         
         .nav-links {
             display: flex;
-            gap: 25px;
+            gap: 15px;
             list-style: none;
+            flex-wrap: wrap;
         }
         
         .nav-links a {
@@ -107,6 +108,7 @@ require_once 'db.php';
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s;
+            font-size: 0.9em;
         }
         
         .nav-links a:hover { 
@@ -117,6 +119,7 @@ require_once 'db.php';
             color: var(--header-text);
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.9em;
         }
         
         .auth-links a:hover { 
@@ -126,48 +129,48 @@ require_once 'db.php';
         .auth-links .username {
             color: var(--primary-color);
             font-weight: bold;
+            font-size: 0.9em;
         }
         
-        /* Стили для поиска */
+        /* СТАРЫЙ СТИЛЬ ПОИСКА */
         .search-form {
             display: flex;
-            gap: 10px;
-            margin: 0 20px;
+            margin: 10px 0;
             flex: 1;
             max-width: 400px;
+            order: 0;
         }
         
         .search-input {
             flex: 1;
-            padding: 8px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
+            padding: 10px 15px;
+            border: 2px solid var(--primary-color);
+            border-right: none;
+            border-radius: 25px 0 0 25px;
             background: var(--card-bg);
             color: var(--text-color);
             outline: none;
-            transition: all 0.3s;
+            font-size: 14px;
         }
         
         .search-input::placeholder {
             color: var(--secondary-color);
         }
         
-        .search-input:focus {
-            border-color: var(--primary-color);
-        }
-        
         .search-btn {
             background: var(--primary-color);
             color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 8px 15px;
+            border: 2px solid var(--primary-color);
+            border-radius: 0 25px 25px 0;
+            padding: 10px 20px;
             cursor: pointer;
             transition: background 0.3s;
+            font-size: 14px;
         }
         
         .search-btn:hover {
             background: var(--hover-color);
+            border-color: var(--hover-color);
         }
         
         /* Переключатель темы */
@@ -223,23 +226,43 @@ require_once 'db.php';
         .theme-icon {
             margin-left: 10px;
             color: var(--header-text);
-            font-size: 1.2em;
+            font-size: 1.1em;
         }
-        
+
+        /* Основной контент */
+        main {
+            padding: 20px 0;
+        }
+
+        /* Адаптивность для мобильных */
         @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            
             .nav { 
                 flex-direction: column; 
-                gap: 15px; 
+                gap: 10px; 
                 text-align: center; 
             }
             
+            .logo {
+                font-size: 1.4em;
+                margin-bottom: 5px;
+            }
+            
             .nav-links { 
-                flex-wrap: wrap; 
+                gap: 10px; 
                 justify-content: center; 
+                margin: 5px 0;
+            }
+            
+            .nav-links a {
+                font-size: 0.85em;
             }
             
             .search-form { 
-                margin: 10px 0; 
+                margin: 5px 0; 
                 max-width: 100%;
                 order: 3;
                 width: 100%;
@@ -247,7 +270,29 @@ require_once 'db.php';
             
             .theme-switch-wrapper {
                 margin-left: 0;
-                margin-top: 10px;
+                margin-top: 5px;
+            }
+
+            .auth-links {
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-links {
+                gap: 8px;
+            }
+            
+            .nav-links a {
+                font-size: 0.8em;
+            }
+            
+            .logo {
+                font-size: 1.3em;
+            }
+            
+            body {
+                font-size: 14px;
             }
         }
     </style>
@@ -258,7 +303,7 @@ require_once 'db.php';
             <nav class="nav">
                 <a href="index.php" class="logo"><i class="fas fa-book"></i> better.</a>
                 
-                <!-- ПОИСКОВАЯ ФОРМА -->
+                <!-- СТАРАЯ ПОИСКОВАЯ ФОРМА -->
                 <form method="GET" action="search.php" class="search-form">
                     <input type="text" name="q" placeholder="Поиск сообщений..." class="search-input"
                            value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
@@ -301,4 +346,4 @@ require_once 'db.php';
             </nav>
         </div>
     </header>
-    <main class="container" style="margin:30px auto; max-width:1200px;">
+    <main class="container">

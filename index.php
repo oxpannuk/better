@@ -1,4 +1,5 @@
 <?php
+ob_start();
 $page_title = "Предложения по улучшению";
 require 'header.php';
 
@@ -148,6 +149,137 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     </div>';
 }
 ?>
+
+<style>
+/* Мобильная адаптивность для index.php */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    /* Форма добавления сообщения */
+    form > div {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    
+    textarea[name="message"] {
+        min-height: 120px !important;
+        font-size: 16px !important;
+    }
+    
+    /* Блок фильтров и сортировки */
+    .filters-sort-container > div {
+        flex-direction: column !important;
+        gap: 15px !important;
+        align-items: flex-start !important;
+    }
+    
+    .filters-sort-container form {
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    select {
+        min-width: unset !important;
+        width: 100% !important;
+        font-size: 16px !important; /* Убирает масштабирование в iOS */
+    }
+    
+    /* Сообщения */
+    .message {
+        margin-left: 10px !important;
+        padding: 15px !important;
+    }
+    
+    .message-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 5px !important;
+    }
+    
+    /* Кнопки действий в сообщениях */
+    .message-actions {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    .message-actions button {
+        font-size: 0.9em !important;
+        margin-left: 5px !important;
+    }
+    
+    /* Информация о сообщении */
+    .message-info {
+        font-size: 0.8em !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Ответы */
+    .reply-message {
+        margin-left: 20px !important;
+        padding: 15px !important;
+    }
+    
+    h1, h2 {
+        font-size: 1.4em !important;
+    }
+    
+    button[type="submit"] {
+        width: 100% !important;
+        padding: 12px !important;
+        font-size: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .message {
+        padding: 12px !important;
+        margin-left: 5px !important;
+    }
+    
+    .reply-message {
+        margin-left: 15px !important;
+        padding: 12px !important;
+    }
+    
+    .message-actions {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+    
+    .vote-buttons {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    .action-buttons {
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .message-actions button {
+        margin-left: 0 !important;
+    }
+    
+    h1, h2 {
+        font-size: 1.3em !important;
+    }
+    
+    /* Улучшаем форму на очень маленьких экранах */
+    .new-message-form {
+        padding: 20px !important;
+    }
+    
+    .filters-sort-container {
+        padding: 15px !important;
+    }
+}
+</style>
 
 <!-- ФОРМА ДОБАВЛЕНИЯ СООБЩЕНИЯ -->
 <div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:40px;">
