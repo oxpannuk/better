@@ -1,5 +1,5 @@
 <?php
-// api.php — полностью исправленная и рабочая версия (25.11.2025)
+// api.php — полностью исправленная и рабочая версия
 
 session_start();
 
@@ -71,7 +71,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get_offices') {
     exit;
 }
 
-// ----------------- ГОЛОСОВАНИЕ (БЕЗ SQL-инъекции) -----------------
+// ----------------- ГОЛОСОВАНИЕ -----------------
 if (($_POST['action'] ?? '') === 'vote' && isset($_POST['message_id'], $_POST['vote'])) {
     $message_id = (int)$_POST['message_id'];
     $vote = $_POST['vote'];
@@ -102,7 +102,7 @@ if (($_POST['action'] ?? '') === 'vote' && isset($_POST['message_id'], $_POST['v
     exit;
 }
 
-// ----------------- УДАЛЕНИЕ (каскад в БД всё сделает сам) -----------------
+// ----------------- УДАЛЕНИЕ -----------------
 if (($_POST['action'] ?? '') === 'delete' && isset($_POST['id'])) {
     $id = (int)$_POST['id'];
 
@@ -116,7 +116,7 @@ if (($_POST['action'] ?? '') === 'delete' && isset($_POST['id'])) {
     }
 
     if ($is_admin || $owner_id == $user_id) {
-        $pdo->prepare("DELETE FROM messages WHERE id = ?")->execute([$id]); // ON DELETE CASCADE удалит все ответы
+        $pdo->prepare("DELETE FROM messages WHERE id = ?")->execute([$id]);
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Нет прав']);
@@ -155,7 +155,12 @@ if (($_POST['action'] ?? '') === 'reply' && isset($_POST['parent_id'], $_POST['m
     if ($message) {
         $pdo->prepare("INSERT INTO messages (user_id, message, parent_id) VALUES (?, ?, ?)")
             ->execute([$user_id, $message, $parent_id]);
-        echo json_encode(['success' => true, 'new_id' => $pdo->lastInsertId()]);
+        $new_id = $pdo->lastInsertId();
+
+        echo json_encode([
+            'success' => true,
+            'new_id' => $new_id
+        ]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Пустое сообщение']);
     }
@@ -165,17 +170,23 @@ if (($_POST['action'] ?? '') === 'reply' && isset($_POST['parent_id'], $_POST['m
 // ----------------- ПОЛУЧЕНИЕ ОТВЕТОВ -----------------
 if (($_GET['action'] ?? '') === 'get_replies' && isset($_GET['parent_id'])) {
     $parent_id = (int)$_GET['parent_id'];
+
     $stmt = $pdo->prepare("
-        SELECT m.*, u.username, (m.upvotes - m.downvotes) as score, 
-        (SELECT vote FROM message_votes WHERE message_id = m.id AND user_id = ?) as user_vote, 
-        DATE_FORMAT(m.created_at, '%d.%m.%Y %H:%i') as created_at
-        FROM messages m JOIN users u ON m.user_id = u.id WHERE parent_id = ? ORDER BY created_at ASC
+        SELECT m.*, u.username, 
+               (m.upvotes - m.downvotes) as score, 
+               COALESCE((SELECT vote FROM message_votes WHERE message_id = m.id AND user_id = ?), 0) as user_vote,
+               DATE_FORMAT(m.created_at, '%d.%m.%Y %H:%i') as created_at_formatted
+        FROM messages m 
+        JOIN users u ON m.user_id = u.id 
+        WHERE m.parent_id = ? 
+        ORDER BY m.created_at ASC
     ");
     $stmt->execute([$user_id, $parent_id]);
-    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    $replies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode($replies);
     exit;
 }
 
 // Если ничего не подошло
 echo json_encode(['success' => false, 'error' => 'Unknown action']);
-?>
