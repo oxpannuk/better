@@ -1,6 +1,4 @@
 <?php
-// api.php — полностью исправленная и рабочая версия
-
 session_start();
 
 if (!file_exists('db.php')) {

@@ -134,13 +134,14 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--danger-color); margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
             ' : '') . '
             
-            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
+            ' . ($depth === 0 ? '<button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>' : '') . '
         </div>
         
+        ' . ($depth === 0 ? '
         <div id="reply-form-' . $msg['id'] . '" style="display:none; margin-top:15px;">
             <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);"></textarea>
             <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
-        </div>
+        </div>' : '') . '
 
         <div>
             <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
@@ -679,15 +680,6 @@ function loadReplies(id) {
                                 <i class="fas fa-trash"></i> Удалить
                             </button>
                             ` : ''}
-                            
-                            <button onclick="toggleReply(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--primary-color); margin-left: 10px;">
-                                <i class="fas fa-reply"></i> Ответить
-                            </button>
-                        </div>
-                        
-                        <div id="reply-form-${reply.id}" style="display:none; margin-top:15px;">
-                            <textarea id="reply-text-${reply.id}" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background: var(--card-bg); color: var(--text-color);"></textarea>
-                            <button onclick="submitReply(${reply.id})" style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
                         </div>
                     `;
 

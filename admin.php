@@ -16,9 +16,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? 'user') !== 'admin') {
     exit;
 }
 
-/* ===================================================================
-   AJAX — удаление и редактирование сообщений (ДО ЛЮБОГО ВЫВОДА HTML!)
-   =================================================================== */
+/* AJAX — удаление и редактирование сообщений  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
 
@@ -48,9 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     exit;
 }
 
-/* ===================================================================
-   ОБЫЧНЫЕ POST — справочники
-   =================================================================== */
+/* ОБЫЧНЫЕ POST — справочники*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_city']) && trim($_POST['city_name'] ?? '')) {
         $pdo->prepare("INSERT INTO cities (name) VALUES (?)")->execute([trim($_POST['city_name'])]);
@@ -83,9 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-/* ===================================================================
-   ДАННЫЕ ДЛЯ СТРАНИЦЫ
-   =================================================================== */
+/* ДАННЫЕ ДЛЯ СТРАНИЦЫ */
 $cities = $pdo->query("SELECT * FROM cities ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 $companies = $pdo->query("SELECT * FROM companies ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -104,9 +98,6 @@ $messages = $pdo->query("
     ORDER BY m.created_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-/* ===================================================================
-   ТЕПЕРЬ ПОДКЛЮЧАЕМ ШАПКУ (после всей логики!)
-   =================================================================== */
 require 'header.php';
 ?>
 

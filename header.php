@@ -132,7 +132,7 @@ require_once 'db.php';
             font-size: 0.9em;
         }
         
-        /* СТАРЫЙ СТИЛЬ ПОИСКА */
+        /* УМЕНЬШЕННАЯ КНОПКА ПОИСКА */
         .search-form {
             display: flex;
             margin: 10px 0;
@@ -143,7 +143,7 @@ require_once 'db.php';
         
         .search-input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 8px 15px;
             border: 2px solid var(--primary-color);
             border-right: none;
             border-radius: 25px 0 0 25px;
@@ -151,6 +151,7 @@ require_once 'db.php';
             color: var(--text-color);
             outline: none;
             font-size: 14px;
+            height: 38px;
         }
         
         .search-input::placeholder {
@@ -162,10 +163,14 @@ require_once 'db.php';
             color: white;
             border: 2px solid var(--primary-color);
             border-radius: 0 25px 25px 0;
-            padding: 10px 20px;
+            padding: 8px 16px;
             cursor: pointer;
             transition: background 0.3s;
-            font-size: 14px;
+            font-size: 13px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .search-btn:hover {
@@ -303,7 +308,7 @@ require_once 'db.php';
             <nav class="nav">
                 <a href="index.php" class="logo"><i class="fas fa-book"></i> better.</a>
                 
-                <!-- СТАРАЯ ПОИСКОВАЯ ФОРМА -->
+                <!-- УМЕНЬШЕННАЯ ФОРМА ПОИСКА -->
                 <form method="GET" action="search.php" class="search-form">
                     <input type="text" name="q" placeholder="Поиск сообщений..." class="search-input"
                            value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">

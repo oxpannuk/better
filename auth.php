@@ -1,5 +1,5 @@
 <?php
-// auth.php обработчик регистрации и входа 
+// обработчик регистрации и входа 
 session_start();
 require_once 'db.php';
 
@@ -11,7 +11,7 @@ if ($_POST['action'] ?? '' === 'register') {
         die('Логин минимум 3 символа, пароль — 6+');
     }
 
-    // Проверка, что такой логин уже есть
+    // Проверка что такой логин уже есть
     $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
     $stmt->execute([$username]);
     if ($stmt->fetch()) {
@@ -22,7 +22,7 @@ if ($_POST['action'] ?? '' === 'register') {
     $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, 'user')");
     $stmt->execute([$username, $hash]);
 
-    // Можно сразу авторизовать после регистрации
+    // авторизование после регистрации
     $user_id = $pdo->lastInsertId();
     $_SESSION['user_id'] = $user_id;
     $_SESSION['username'] = $username;
