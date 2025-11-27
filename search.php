@@ -1,13 +1,11 @@
 <?php
-session_start();
+$page_title = "Поиск сообщений";
+require 'header.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-
-$page_title = "Поиск сообщений";
-require 'header.php';
 
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';

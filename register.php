@@ -1,16 +1,11 @@
 <?php
+session_start();
 $page_title = "Регистрация";
-require 'header.php';
 
-// Если пользователь уже авторизован — сразу кидает на главную
-if (isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit;
-}
-
-$error = '';
-
+// Обработка POST запроса ДО любого вывода
 if ($_POST) {
+    require_once 'db.php';
+    
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
@@ -47,11 +42,20 @@ if ($_POST) {
         }
     }
 }
+
+// Если уже авторизован — редирект (тоже ДО любого вывода)
+if (isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Только теперь подключаем header.php
+require 'header.php';
 ?>
 
 <h2 style="text-align:center; margin-bottom:30px; color:var(--text-color);">Создание аккаунта</h2>
 
-<?php if ($error): ?>
+<?php if (isset($error)): ?>
     <div style="color:var(--danger-color); background:var(--card-bg); padding:15px; border-radius:8px; margin:20px auto; max-width:420px; text-align:center; border:1px solid var(--danger-color);">
         <?= htmlspecialchars($error) ?>
     </div>

@@ -1,13 +1,11 @@
 <?php
-session_start();
+$page_title = "Предложения по улучшению";
+require 'header.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-
-$page_title = "Предложения по улучшению";
-require 'header.php';
 
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
@@ -329,8 +327,8 @@ function vote(id, type) {
 
                 const upBtn = msgEl.querySelector('.upvote-btn');
                 const downBtn = msgEl.querySelector('.downvote-btn');
-                upBtn.style.color = newVote === 1 ? '#16a085' : '#bdc3c7';
-                downBtn.style.color = newVote === -1 ? '#c0392b' : '#bdc3c7';
+                upBtn.style.color = newVote === 1 ? '#16a085' : 'var(--secondary-color)';
+                downBtn.style.color = newVote === -1 ? '#c0392b' : 'var(--secondary-color)';
 
                 msgEl.dataset.userVote = newVote;
             } else {
@@ -378,17 +376,17 @@ function editMessage(id) {
     const textarea = document.createElement('textarea');
     textarea.value = currentText;
     textarea.style.cssText =
-        'width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;';
+        'width:100%; min-height:120px; padding:12px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);';
 
     const saveBtn = document.createElement('button');
     saveBtn.textContent = 'Сохранить';
     saveBtn.style.cssText =
-        'margin-top:10px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:6px; cursor:pointer;';
+        'margin-top:10px; padding:10px 20px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;';
 
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Отмена';
     cancelBtn.style.cssText =
-        'margin-top:10px; margin-left:10px; padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; cursor:pointer;';
+        'margin-top:10px; margin-left:10px; padding:10px 20px; background:var(--secondary-color); color:white; border:none; border-radius:6px; cursor:pointer;';
 
     cancelBtn.onclick = () => textDiv.innerHTML = originalHTML;
 
@@ -488,7 +486,7 @@ function loadReplies(id) {
     console.log('Loading replies from API...');
 
     // Показываем индикатор загрузки
-    repliesDiv.innerHTML = '<div style="text-align: center; color: #3498db; padding: 20px;">Загрузка ответов...</div>';
+    repliesDiv.innerHTML = '<div style="text-align: center; color: var(--primary-color); padding: 20px;">Загрузка ответов...</div>';
     repliesDiv.style.display = 'block';
 
     fetch(`api.php?action=get_replies&parent_id=${id}`)
@@ -523,41 +521,41 @@ function loadReplies(id) {
                     replyElement.id = `msg-${reply.id}`;
                     replyElement.setAttribute('data-user-vote', reply.user_vote || 0);
                     replyElement.style.cssText =
-                        'margin-left: 40px; border-left: 3px solid #3498db; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;';
+                        'margin-left: 40px; border-left: 3px solid var(--primary-color); padding: 20px; background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px;';
 
                     // Заполняем содержимое
                     replyElement.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-weight: bold; color: #3498db;">${escapeHtml(reply.username)}</span>
-                            <span style="color: #95a5a6; font-size: 0.9em;">${reply.created_at_formatted || formatDate(reply.created_at)}</span>
+                            <span style="font-weight: bold; color: var(--primary-color);">${escapeHtml(reply.username)}</span>
+                            <span style="color: var(--secondary-color); font-size: 0.9em;">${reply.created_at_formatted || formatDate(reply.created_at)}</span>
                         </div>
-                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line;">${escapeHtml(reply.message)}</div>
+                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line; color: var(--text-color);">${escapeHtml(reply.message)}</div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <button class="upvote-btn" onclick="vote(${reply.id}, 'up')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == 1 ? '#16a085' : '#bdc3c7'}; font-size: 1.2em;">
+                            <button class="upvote-btn" onclick="vote(${reply.id}, 'up')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == 1 ? '#16a085' : 'var(--secondary-color)'}; font-size: 1.2em;">
                                 <i class="fas fa-thumbs-up"></i>
                             </button>
-                            <span class="score" style="font-weight: bold; color: #34495e;">${reply.score || 0}</span>
-                            <button class="downvote-btn" onclick="vote(${reply.id}, 'down')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == -1 ? '#c0392b' : '#bdc3c7'}; font-size: 1.2em;">
+                            <span class="score" style="font-weight: bold; color: var(--text-color);">${reply.score || 0}</span>
+                            <button class="downvote-btn" onclick="vote(${reply.id}, 'down')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == -1 ? '#c0392b' : 'var(--secondary-color)'}; font-size: 1.2em;">
                                 <i class="fas fa-thumbs-down"></i>
                             </button>
                             
                             ${canEditDelete ? `
-                            <button class="edit-btn" onclick="editMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: #f39c12; margin-left: 10px;">
+                            <button class="edit-btn" onclick="editMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--warning-color); margin-left: 10px;">
                                 <i class="fas fa-edit"></i> Редактировать
                             </button>
-                            <button class="delete-btn" onclick="deleteMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: #e74c3c; margin-left: 10px;">
+                            <button class="delete-btn" onclick="deleteMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--danger-color); margin-left: 10px;">
                                 <i class="fas fa-trash"></i> Удалить
                             </button>
                             ` : ''}
                             
-                            <button onclick="toggleReply(${reply.id})" style="background: none; border: none; cursor: pointer; color: #3498db; margin-left: 10px;">
+                            <button onclick="toggleReply(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--primary-color); margin-left: 10px;">
                                 <i class="fas fa-reply"></i> Ответить
                             </button>
                         </div>
                         
                         <div id="reply-form-${reply.id}" style="display:none; margin-top:15px;">
-                            <textarea id="reply-text-${reply.id}" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
-                            <button onclick="submitReply(${reply.id})" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
+                            <textarea id="reply-text-${reply.id}" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background: var(--card-bg); color: var(--text-color);"></textarea>
+                            <button onclick="submitReply(${reply.id})" style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
                         </div>
                     `;
 
@@ -565,7 +563,7 @@ function loadReplies(id) {
                 });
             } else {
                 repliesDiv.innerHTML =
-                    '<div style="text-align: center; color: #7f8c8d; padding: 20px;">Ответов пока нет</div>';
+                    '<div style="text-align: center; color: var(--secondary-color); padding: 20px;">Ответов пока нет</div>';
             }
 
             // Обновляем текст кнопки
@@ -575,7 +573,7 @@ function loadReplies(id) {
         .catch(error => {
             console.error('Ошибка загрузки ответов:', error);
             repliesDiv.innerHTML =
-                '<div style="color: #e74c3c; padding: 10px; text-align: center;">Ошибка загрузки ответов: ' + error
+                '<div style="color: var(--danger-color); padding: 10px; text-align: center;">Ошибка загрузки ответов: ' + error
                 .message + '</div>';
         });
 }

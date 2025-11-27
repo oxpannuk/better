@@ -1,4 +1,6 @@
 <?php
+// УБЕРЕМ session_start() отсюда, так как он уже будет в других файлах
+// Просто проверяем статус сессии
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
