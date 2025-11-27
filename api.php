@@ -12,7 +12,15 @@ require_once 'db.php';
 ini_set('display_errors', 0);
 error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 
+// CORS headers for localhost
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0); // Handle preflight request
+}
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'error' => 'Не авторизован']);
@@ -139,7 +147,7 @@ if (($_POST['action'] ?? '') === 'update' && isset($_POST['id'], $_POST['message
     exit;
 }
 
-// ----------------- ОТВЕТЫ (добавлено) -----------------
+// ----------------- ОТВЕТЫ -----------------
 if (($_POST['action'] ?? '') === 'reply' && isset($_POST['parent_id'], $_POST['message'])) {
     $parent_id = (int)$_POST['parent_id'];
     $message = trim($_POST['message']);
@@ -147,10 +155,24 @@ if (($_POST['action'] ?? '') === 'reply' && isset($_POST['parent_id'], $_POST['m
     if ($message) {
         $pdo->prepare("INSERT INTO messages (user_id, message, parent_id) VALUES (?, ?, ?)")
             ->execute([$user_id, $message, $parent_id]);
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'new_id' => $pdo->lastInsertId()]);
     } else {
         echo json_encode(['success' => false, 'error' => 'Пустое сообщение']);
     }
+    exit;
+}
+
+// ----------------- ПОЛУЧЕНИЕ ОТВЕТОВ -----------------
+if (($_GET['action'] ?? '') === 'get_replies' && isset($_GET['parent_id'])) {
+    $parent_id = (int)$_GET['parent_id'];
+    $stmt = $pdo->prepare("
+        SELECT m.*, u.username, (m.upvotes - m.downvotes) as score, 
+        (SELECT vote FROM message_votes WHERE message_id = m.id AND user_id = ?) as user_vote, 
+        DATE_FORMAT(m.created_at, '%d.%m.%Y %H:%i') as created_at
+        FROM messages m JOIN users u ON m.user_id = u.id WHERE parent_id = ? ORDER BY created_at ASC
+    ");
+    $stmt->execute([$user_id, $parent_id]);
+    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     exit;
 }
 

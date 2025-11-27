@@ -69,6 +69,11 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
     $vote_stmt->execute([$msg['id'], $current_user_id]);
     $user_vote = $vote_stmt->fetchColumn() ?: 0;
 
+    // Подсчёт количества ответов
+    $replies_count_stmt = $pdo->prepare("SELECT COUNT(*) FROM messages WHERE parent_id = ?");
+    $replies_count_stmt->execute([$msg['id']]);
+    $replies_count = $replies_count_stmt->fetchColumn();
+
     echo '
     <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -102,14 +107,12 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0) {
             <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
             <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
         </div>
+
+        <div>
+            <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
+            <div id="replies-' . $msg['id'] . '" style="display:none; margin-top:15px; opacity:0; transition: opacity 0.5s ease-in-out;"></div>
+        </div>
     </div>';
-    
-    // Рекурсия для ответов
-    $replies_stmt = $pdo->prepare("SELECT m.*, u.username FROM messages m JOIN users u ON m.user_id = u.id WHERE parent_id = ? ORDER BY created_at ASC");
-    $replies_stmt->execute([$msg['id']]);
-    foreach ($replies_stmt->fetchAll() as $reply) {
-        renderMessage($reply, $current_user_id, $is_admin, $depth + 1);
-    }
 }
 
 ?>
@@ -328,21 +331,81 @@ function submitReply(id) {
     .then(r => {
         return r.text().then(text => {
             console.log('Raw response from api.php for reply:', text); // Добавлена отладка
-            if (!r.ok) throw new Error('HTTP error: ' + r.status);
+            if (!r.ok) throw new Error('HTTP error: ' + r.status + ' - ' + text);
             return JSON.parse(text);
         });
     })
     .then(data => {
         if (data.success) {
-            location.reload(); // Перезагрузка для показа ответа (можно улучшить позже)
+            document.getElementById(`reply-text-${id}`).value = '';
+            toggleReply(id);
+            // Обновляем счётчик
+            const showButton = document.getElementById(`show-replies-${id}`);
+            let count = parseInt(showButton.textContent.match(/\d+/) || 0) + 1;
+            showButton.textContent = 'Показать ответы (' + count + ')';
+            // Если открыто, перезагружаем ответы, чтобы добавить новый без дубли
+            const repliesDiv = document.getElementById(`replies-${id}`);
+            if (repliesDiv.style.display === 'block') {
+                loadReplies(id);
+            }
         } else {
             alert('Ошибка: ' + (data.error || 'Неизвестно'));
         }
     })
     .catch(error => {
         console.error('Ошибка ответа:', error);
-        alert('Ошибка сети.');
+        alert('Ошибка сети при отправке ответа: ' + error.message);
     });
+}
+
+// Загрузка ответов
+function loadReplies(id) {
+    const repliesDiv = document.getElementById(`replies-${id}`);
+    const showButton = document.getElementById(`show-replies-${id}`);
+    
+    if (repliesDiv.style.display === 'block') {
+        repliesDiv.style.opacity = '0';
+        setTimeout(() => {
+            repliesDiv.style.display = 'none';
+            showButton.textContent = showButton.textContent.replace('Скрыть', 'Показать');
+        }, 500);
+    } else {
+        fetch('api.php?action=get_replies&parent_id=' + id)
+            .then(r => {
+                return r.text().then(text => {
+                    console.log('Raw response for get_replies:', text); // Отладка
+                    if (!r.ok) throw new Error('HTTP error: ' + r.status + ' - ' + text);
+                    return JSON.parse(text);
+                });
+            })
+            .then(data => {
+                repliesDiv.innerHTML = '';
+                data.forEach(reply => {
+                    const replyHTML = `
+                        <div style="margin-left: 40px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+                            <span style="font-weight:bold; color:#3498db;">${reply.username}</span>
+                            <span style="color:#95a5a6; font-size:0.9em;">${reply.created_at}</span>
+                            <div style="margin-bottom:15px;">${reply.message.replace(/\n/g, '<br>')}</div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <button onclick="vote(${reply.id}, 'up')" style="background:none; border:none; cursor:pointer; color:${reply.user_vote === 1 ? '#16a085' : '#bdc3c7'}; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
+                                <span class="score">${reply.score}</span>
+                                <button onclick="vote(${reply.id}, 'down')" style="background:none; border:none; cursor:pointer; color:${reply.user_vote === -1 ? '#c0392b' : '#bdc3c7'}; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    repliesDiv.insertAdjacentHTML('beforeend', replyHTML);
+                });
+                repliesDiv.style.display = 'block';
+                setTimeout(() => {
+                    repliesDiv.style.opacity = '1';
+                }, 10);
+                showButton.textContent = showButton.textContent.replace('Показать', 'Скрыть');
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки ответов:', error);
+                alert('Ошибка сети при загрузке ответов: ' + error.message);
+            });
+    }
 }
 
 // Зависимые селекты (без изменений)
