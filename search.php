@@ -1,5 +1,5 @@
 <?php
-$page_title = "Предложения по улучшению";
+$page_title = "Поиск сообщений";
 require 'header.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -10,15 +10,23 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
 
-// === ФИЛЬТРЫ И СОРТИРОВКА ===
+// === ПОИСК И ФИЛЬТРЫ ===
+$query = trim($_GET['q'] ?? '');
 $city_id = $_GET['city'] ?? '';
 $company_id = $_GET['company'] ?? '';
-$office_id = $_GET['office'] ?? '';
 $type_id = $_GET['type'] ?? '';
-$sort = $_GET['sort'] ?? 'score';
+$sort = $_GET['sort'] ?? 'relevance';
 
-$where = ["m.parent_id IS NULL"]; // ВАЖНО: только корневые сообщения
+$where = ["m.parent_id IS NULL"];
 $params = [];
+
+if (!empty($query)) {
+    $where[] = "(m.message LIKE ? OR u.username LIKE ?)";
+    $search_term = "%$query%";
+    $params[] = $search_term;
+    $params[] = $search_term;
+}
+
 if ($city_id) {
     $where[] = "m.city_id = ?";
     $params[] = $city_id;
@@ -27,16 +35,12 @@ if ($company_id) {
     $where[] = "m.company_id = ?";
     $params[] = $company_id;
 }
-if ($office_id) {
-    $where[] = "m.office_id = ?";
-    $params[] = $office_id;
-}
 if ($type_id) {
     $where[] = "m.type_id = ?";
     $params[] = $type_id;
 }
 
-$where_sql = 'WHERE ' . implode(' AND ', $where);
+$where_sql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
 // Определяем порядок сортировки
 switch ($sort) {
@@ -49,16 +53,31 @@ switch ($sort) {
     case 'upvotes':
         $order_by = 'm.upvotes DESC, m.created_at DESC';
         break;
-    case 'downvotes':
-        $order_by = 'm.downvotes DESC, m.created_at DESC';
-        break;
     case 'score':
-    default:
         $order_by = '(m.upvotes - m.downvotes) DESC, m.created_at DESC';
+        break;
+    case 'relevance':
+    default:
+        // Если есть поисковый запрос, сортируем по релевантности
+        if (!empty($query)) {
+            $order_by = "
+                CASE 
+                    WHEN m.message LIKE ? THEN 3
+                    WHEN u.username LIKE ? THEN 2
+                    ELSE 1
+                END DESC,
+                (m.upvotes - m.downvotes) DESC,
+                m.created_at DESC
+            ";
+            $params[] = "%$query%";
+            $params[] = "%$query%";
+        } else {
+            $order_by = 'm.created_at DESC';
+        }
         break;
 }
 
-// ЗАПРОС ТОЛЬКО КОРНЕВЫХ СООБЩЕНИЙ
+// ЗАПРОС СООБЩЕНИЙ
 $sql = "SELECT m.*, u.username, c.name as city_name, comp.name as company_name, o.address as office_address, t.name as type_name 
         FROM messages m 
         JOIN users u ON m.user_id = u.id 
@@ -73,26 +92,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $messages = $stmt->fetchAll();
 
-// === Добавление КОРНЕВОГО сообщения ===
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['message'])) {
-    $message = trim(htmlspecialchars($_POST['message']));
-    $city_id = (int)$_POST['city_id'];
-    $company_id = (int)$_POST['company_id'];
-    $office_id = (int)$_POST['office_id'];
-    $type_id = (int)$_POST['type_id'];
-
-    if ($message && $city_id && $company_id && $office_id && $type_id) {
-        // ВАЖНО: parent_id не указываем - это корневое сообщение
-        $stmt = $pdo->prepare("INSERT INTO messages (user_id, message, city_id, company_id, office_id, type_id) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$user_id, $message, $city_id, $company_id, $office_id, $type_id]);
-
-        $query = http_build_query($_GET);
-        header("Location: index.php?$query");
-        exit;
-    }
-}
-
-// === РЕНДЕР ===
+// Функция renderMessage такая же как в index.php
 function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 {
     global $pdo;
@@ -107,14 +107,27 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     $replies_count_stmt->execute([$msg['id']]);
     $replies_count = $replies_count_stmt->fetchColumn();
 
+    // Подсветка поискового запроса
+    global $query;
+    $highlighted_message = $msg['message'];
+    $highlighted_username = $msg['username'];
+    
+    if (!empty($query)) {
+        $highlighted_message = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7;">$1</mark>', htmlspecialchars($msg['message']));
+        $highlighted_username = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7;">$1</mark>', htmlspecialchars($msg['username']));
+    } else {
+        $highlighted_message = nl2br(htmlspecialchars($msg['message']));
+        $highlighted_username = htmlspecialchars($msg['username']);
+    }
+
     echo '
     <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-weight:bold; color:#3498db;">' . htmlspecialchars($msg['username']) . '</span>
+            <span style="font-weight:bold; color:#3498db;">' . $highlighted_username . '</span>
             <span style="color:#95a5a6; font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
         </div>
         
-        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px;">' . nl2br(htmlspecialchars($msg['message'])) . '</div>
+        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px;">' . $highlighted_message . '</div>
         
         <div style="color:#7f8c8d; font-size:0.9em; margin-bottom:10px;">
             <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>' . htmlspecialchars($msg['city_name'] ?? 'Не указан') . ' &middot; 
@@ -149,57 +162,37 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 }
 ?>
 
-<!-- ФОРМА ДОБАВЛЕНИЯ СООБЩЕНИЯ -->
-<div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:40px;">
-    <h2 style="margin-bottom:25px; color:#2c3e50;">Новое предложение или жалоба</h2>
-    <form method="POST">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom:20px;">
-            <select name="city_id" id="city-select" required>
-                <option value="">Выберите город</option>
-                <?php
-                $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
-                foreach ($cities as $c) {
-                    $sel = $c['id'] == $city_id ? 'selected' : '';
-                    echo "<option value=\"{$c['id']}\" $sel>{$c['name']}</option>";
-                }
-                ?>
-            </select>
+<!-- РЕЗУЛЬТАТЫ ПОИСКА -->
+<div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:30px;">
+    <h1 style="color:#2c3e50; margin-bottom:20px;">
+        <i class="fas fa-search"></i> Результаты поиска
+        <?php if (!empty($query)): ?>
+            <span style="color:#7f8c8d; font-size:0.8em;">по запросу: "<?= htmlspecialchars($query) ?>"</span>
+        <?php endif; ?>
+    </h1>
 
-            <select name="company_id" id="company-select" required>
-                <option value="">Выберите компанию</option>
-            </select>
+    <div style="color:#7f8c8d; margin-bottom:25px;">
+        Найдено сообщений: <strong><?= count($messages) ?></strong>
+    </div>
 
-            <select name="office_id" id="office-select" required>
-                <option value="">Выберите офис</option>
-            </select>
-
-            <select name="type_id" required>
-                <option value="">Тип сообщения</option>
-                <?php
-                $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
-                foreach ($types as $t) {
-                    $sel = $t['id'] == $type_id ? 'selected' : '';
-                    echo "<option value=\"{$t['id']}\" $sel>{$t['name']}</option>";
-                }
-                ?>
-            </select>
+    <!-- ФОРМА ПОИСКА И ФИЛЬТРОВ -->
+    <form method="GET" style="margin-bottom:25px;">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Поиск по сообщениям</label>
+                <input type="text" name="q" value="<?= htmlspecialchars($query) ?>" 
+                       placeholder="Введите текст для поиска..." 
+                       style="width:100%; padding:12px; border:2px solid #3498db; border-radius:8px; font-size:16px;">
+            </div>
+            <button type="submit" style="padding:12px 24px; background:#3498db; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
+                <i class="fas fa-search"></i> Искать
+            </button>
         </div>
 
-        <textarea name="message" placeholder="Текст..." required
-            style="width:100%; min-height:140px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin-bottom:20px;"></textarea>
-
-        <button type="submit"
-            style="padding:14px 32px; background:#3498db; color:white; border:none; border-radius:8px; font-size:18px; cursor:pointer;">Отправить</button>
-    </form>
-</div>
-
-<!-- БЛОК СОРТИРОВКИ И ФИЛЬТРОВ -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <!-- ФИЛЬТРЫ -->
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <form method="GET" style="display: flex; gap: 10px; align-items: center;">
-                <select name="city" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:150px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top:20px;">
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Город</label>
+                <select name="city" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <option value="">Все города</option>
                     <?php
                     $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
@@ -209,8 +202,11 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                     }
                     ?>
                 </select>
+            </div>
 
-                <select name="company" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Компания</label>
+                <select name="company" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <option value="">Все компании</option>
                     <?php
                     $companies = $pdo->query("SELECT id, name FROM companies ORDER BY name")->fetchAll();
@@ -220,8 +216,11 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                     }
                     ?>
                 </select>
+            </div>
 
-                <select name="type" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:160px;">
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Тип</label>
+                <select name="type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <option value="">Все типы</option>
                     <?php
                     $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
@@ -231,61 +230,50 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                     }
                     ?>
                 </select>
+            </div>
 
-                <!-- Скрытые поля для сохранения других параметров -->
-                <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-                <?php if ($office_id): ?>
-                    <input type="hidden" name="office" value="<?= htmlspecialchars($office_id) ?>">
-                <?php endif; ?>
-            </form>
-        </div>
-
-        <!-- СОРТИРОВКА -->
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <span style="color:#7f8c8d; font-weight:500;">Сортировка:</span>
-            <form method="GET" style="display: flex; gap: 10px;">
-                <select name="sort" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; background:white; min-width:180px;">
+            <div>
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Сортировка</label>
+                <select name="sort" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    <option value="relevance" <?= $sort == 'relevance' ? 'selected' : '' ?>>По релевантности</option>
                     <option value="score" <?= $sort == 'score' ? 'selected' : '' ?>>По рейтингу</option>
                     <option value="upvotes" <?= $sort == 'upvotes' ? 'selected' : '' ?>>По лайкам</option>
-                    <option value="downvotes" <?= $sort == 'downvotes' ? 'selected' : '' ?>>По дизлайкам</option>
                     <option value="date_new" <?= $sort == 'date_new' ? 'selected' : '' ?>>По дате (новые)</option>
                     <option value="date_old" <?= $sort == 'date_old' ? 'selected' : '' ?>>По дате (старые)</option>
                 </select>
-
-                <!-- Скрытые поля для сохранения фильтров -->
-                <?php if ($city_id): ?>
-                    <input type="hidden" name="city" value="<?= htmlspecialchars($city_id) ?>">
-                <?php endif; ?>
-                <?php if ($company_id): ?>
-                    <input type="hidden" name="company" value="<?= htmlspecialchars($company_id) ?>">
-                <?php endif; ?>
-                <?php if ($office_id): ?>
-                    <input type="hidden" name="office" value="<?= htmlspecialchars($office_id) ?>">
-                <?php endif; ?>
-                <?php if ($type_id): ?>
-                    <input type="hidden" name="type" value="<?= htmlspecialchars($type_id) ?>">
-                <?php endif; ?>
-            </form>
+            </div>
         </div>
-    </div>
+    </form>
 
-    <!-- КНОПКА СБРОСА ФИЛЬТРОВ -->
-    <?php if ($city_id || $company_id || $office_id || $type_id || $sort != 'score'): ?>
-    <div style="margin-top:15px; text-align:center;">
-        <a href="index.php" style="color:#e74c3c; text-decoration:none; font-size:14px;">
-            <i class="fas fa-times"></i> Сбросить все фильтры
+    <!-- КНОПКА СБРОСА -->
+    <?php if (!empty($query) || $city_id || $company_id || $type_id): ?>
+    <div style="text-align:center; margin-top:15px;">
+        <a href="search.php" style="color:#e74c3c; text-decoration:none; font-size:14px;">
+            <i class="fas fa-times"></i> Сбросить поиск и фильтры
         </a>
     </div>
     <?php endif; ?>
 </div>
 
-<!-- СПИСОК СООБЩЕНИЙ -->
+<!-- РЕЗУЛЬТАТЫ -->
 <div id="messages-list">
-    <?php foreach ($messages as $msg): ?>
-    <?php renderMessage($msg, $user_id, $is_admin); ?>
-    <?php endforeach; ?>
+    <?php if (count($messages) > 0): ?>
+        <?php foreach ($messages as $msg): ?>
+            <?php renderMessage($msg, $user_id, $is_admin); ?>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <div style="text-align:center; padding:50px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+            <i class="fas fa-search" style="font-size:48px; color:#bdc3c7; margin-bottom:20px;"></i>
+            <h3 style="color:#7f8c8d; margin-bottom:15px;">Сообщения не найдены</h3>
+            <p style="color:#95a5a6;">Попробуйте изменить поисковый запрос или фильтры</p>
+            <a href="index.php" style="display:inline-block; margin-top:20px; padding:10px 20px; background:#3498db; color:white; text-decoration:none; border-radius:6px;">
+                <i class="fas fa-arrow-left"></i> Вернуться на главную
+            </a>
+        </div>
+    <?php endif; ?>
 </div>
 
+<!-- Подключаем тот же JavaScript что и в index.php -->
 <script>
 // Переменные для проверки прав
 const currentUserId = <?= $user_id ?>;
@@ -444,20 +432,9 @@ function submitReply(id) {
         .then(r => r.text().then(text => JSON.parse(text)))
         .then(data => {
             if (data.success) {
-                // Очищаем и скрываем форму
                 document.getElementById(`reply-text-${id}`).value = '';
                 toggleReply(id);
-
-                // Обновляем счетчик ответов
-                const showButton = document.getElementById(`show-replies-${id}`);
-                let count = parseInt(showButton.textContent.match(/\d+/) || 0) + 1;
-                showButton.textContent = count > 0 ? `Показать ответы (${count})` : 'Нет ответов';
-
-                // Если ответы открыты - перезагружаем их
-                const repliesDiv = document.getElementById(`replies-${id}`);
-                if (repliesDiv.style.display === 'block') {
-                    loadReplies(id);
-                }
+                location.reload(); // Перезагружаем для обновления результатов
             } else {
                 alert('Ошибка: ' + (data.error || 'Неизвестно'));
             }
@@ -468,54 +445,29 @@ function submitReply(id) {
         });
 }
 
-// ЗАГРУЗКА ОТВЕТОВ - ИСПРАВЛЕННАЯ ВЕРСИЯ С КНОПКАМИ УПРАВЛЕНИЯ
+// ЗАГРУЗКА ОТВЕТОВ
 function loadReplies(id) {
     const repliesDiv = document.getElementById(`replies-${id}`);
     const showButton = document.getElementById(`show-replies-${id}`);
 
-    console.log('loadReplies called for id:', id);
-
-    // Если ответы уже показаны, скрываем их
     if (repliesDiv.style.display === 'block') {
-        console.log('Hiding replies');
         repliesDiv.style.display = 'none';
         showButton.textContent = showButton.textContent.replace('Скрыть', 'Показать');
         return;
     }
 
-    console.log('Loading replies from API...');
-
-    // Показываем индикатор загрузки
     repliesDiv.innerHTML = '<div style="text-align: center; color: #3498db; padding: 20px;">Загрузка ответов...</div>';
     repliesDiv.style.display = 'block';
 
     fetch(`api.php?action=get_replies&parent_id=${id}`)
-        .then(r => {
-            console.log('Response status:', r.status);
-            return r.text().then(text => {
-                console.log('Raw response:', text);
-                try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    console.error('JSON parse error:', e);
-                    throw new Error('Invalid JSON');
-                }
-            });
-        })
+        .then(r => r.text().then(text => JSON.parse(text)))
         .then(data => {
-            console.log('Processing replies data:', data);
-
-            // ОЧИЩАЕМ контейнер
             repliesDiv.innerHTML = '';
 
             if (data && data.length > 0) {
                 data.forEach(reply => {
-                    console.log('Processing reply:', reply);
-
-                    // Проверяем, может ли пользователь редактировать/удалять этот ответ
                     const canEditDelete = isAdmin || reply.user_id == currentUserId;
 
-                    // Создаем элемент для ответа
                     const replyElement = document.createElement('div');
                     replyElement.className = 'reply-message';
                     replyElement.id = `msg-${reply.id}`;
@@ -523,13 +475,27 @@ function loadReplies(id) {
                     replyElement.style.cssText =
                         'margin-left: 40px; border-left: 3px solid #3498db; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;';
 
-                    // Заполняем содержимое
+                    // Подсветка поиска в ответах
+                    let highlighted_reply_message = reply.message;
+                    let highlighted_reply_username = reply.username;
+                    
+                    if (!empty($query)) {
+                        highlighted_reply_message = reply.message.replace(
+                            new RegExp("(" + $query + ")", "gi"), 
+                            '<mark style="background:#ffeaa7;">$1</mark>'
+                        );
+                        highlighted_reply_username = reply.username.replace(
+                            new RegExp("(" + $query + ")", "gi"), 
+                            '<mark style="background:#ffeaa7;">$1</mark>'
+                        );
+                    }
+
                     replyElement.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-weight: bold; color: #3498db;">${escapeHtml(reply.username)}</span>
-                            <span style="color: #95a5a6; font-size: 0.9em;">${reply.created_at_formatted || formatDate(reply.created_at)}</span>
+                            <span style="font-weight: bold; color: #3498db;">${highlighted_reply_username}</span>
+                            <span style="color: #95a5a6; font-size: 0.9em;">${reply.created_at_formatted || reply.created_at}</span>
                         </div>
-                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line;">${escapeHtml(reply.message)}</div>
+                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line;">${highlighted_reply_message}</div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <button class="upvote-btn" onclick="vote(${reply.id}, 'up')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == 1 ? '#16a085' : '#bdc3c7'}; font-size: 1.2em;">
                                 <i class="fas fa-thumbs-up"></i>
@@ -547,15 +513,6 @@ function loadReplies(id) {
                                 <i class="fas fa-trash"></i> Удалить
                             </button>
                             ` : ''}
-                            
-                            <button onclick="toggleReply(${reply.id})" style="background: none; border: none; cursor: pointer; color: #3498db; margin-left: 10px;">
-                                <i class="fas fa-reply"></i> Ответить
-                            </button>
-                        </div>
-                        
-                        <div id="reply-form-${reply.id}" style="display:none; margin-top:15px;">
-                            <textarea id="reply-text-${reply.id}" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
-                            <button onclick="submitReply(${reply.id})" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
                         </div>
                     `;
 
@@ -566,87 +523,14 @@ function loadReplies(id) {
                     '<div style="text-align: center; color: #7f8c8d; padding: 20px;">Ответов пока нет</div>';
             }
 
-            // Обновляем текст кнопки
             showButton.textContent = showButton.textContent.replace('Показать', 'Скрыть');
-            console.log('Replies loaded successfully');
         })
         .catch(error => {
             console.error('Ошибка загрузки ответов:', error);
             repliesDiv.innerHTML =
-                '<div style="color: #e74c3c; padding: 10px; text-align: center;">Ошибка загрузки ответов: ' + error
-                .message + '</div>';
+                '<div style="color: #e74c3c; padding: 10px; text-align: center;">Ошибка загрузки ответов</div>';
         });
 }
-
-// Функция для экранирования HTML
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Функция для форматирования даты
-function formatDate(dateString) {
-    if (!dateString) return '';
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (e) {
-        return dateString;
-    }
-}
-
-// Зависимые селекты
-function loadCompanies() {
-    const cityId = document.getElementById('city-select').value;
-    const companySelect = document.getElementById('company-select');
-    const officeSelect = document.getElementById('office-select');
-
-    companySelect.innerHTML = '<option value="">Загрузка...</option>';
-    officeSelect.innerHTML = '<option value="">Сначала выберите компанию</option>';
-
-    if (!cityId) return;
-
-    fetch(`api.php?action=get_companies&city_id=${cityId}`)
-        .then(r => r.json())
-        .then(data => {
-            companySelect.innerHTML = '<option value="">Выберите компанию</option>';
-            data.forEach(c => {
-                companySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
-        });
-}
-
-function loadOffices() {
-    const companyId = document.getElementById('company-select').value;
-    const cityId = document.getElementById('city-select').value;
-    const officeSelect = document.getElementById('office-select');
-
-    officeSelect.innerHTML = '<option value="">Загрузка...</option>';
-
-    if (!companyId || !cityId) return;
-
-    fetch(`api.php?action=get_offices&company_id=${companyId}&city_id=${cityId}`)
-        .then(r => r.json())
-        .then(data => {
-            officeSelect.innerHTML = '<option value="">Выберите офис</option>';
-            data.forEach(o => {
-                officeSelect.innerHTML += `<option value="${o.id}">${o.address}</option>`;
-            });
-        });
-}
-
-document.getElementById('city-select').addEventListener('change', loadCompanies);
-document.getElementById('company-select').addEventListener('change', loadOffices);
-
-window.addEventListener('load', () => {
-    if (document.getElementById('city-select').value) loadCompanies();
-    if (document.getElementById('company-select').value) loadOffices();
-});
 </script>
 
 <?php require 'footer.php'; ?>
