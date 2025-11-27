@@ -1,11 +1,13 @@
 <?php
-$page_title = "Предложения по улучшению";
-require 'header.php';
+session_start();
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
+
+$page_title = "Предложения по улучшению";
+require 'header.php';
 
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
@@ -108,15 +110,15 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     $replies_count = $replies_count_stmt->fetchColumn();
 
     echo '
-    <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+    <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid var(--primary-color); padding:20px; background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow); margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-weight:bold; color:#3498db;">' . htmlspecialchars($msg['username']) . '</span>
-            <span style="color:#95a5a6; font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
+            <span style="font-weight:bold; color:var(--primary-color);">' . htmlspecialchars($msg['username']) . '</span>
+            <span style="color:var(--secondary-color); font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
         </div>
         
-        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px;">' . nl2br(htmlspecialchars($msg['message'])) . '</div>
+        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px; color:var(--text-color);">' . nl2br(htmlspecialchars($msg['message'])) . '</div>
         
-        <div style="color:#7f8c8d; font-size:0.9em; margin-bottom:10px;">
+        <div style="color:var(--secondary-color); font-size:0.9em; margin-bottom:10px;">
             <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>' . htmlspecialchars($msg['city_name'] ?? 'Не указан') . ' &middot; 
             <i class="fas fa-building" style="margin-right:5px;"></i>' . htmlspecialchars($msg['company_name'] ?? 'Не указана') . ' &middot; 
             <i class="fas fa-home" style="margin-right:5px;"></i>' . htmlspecialchars($msg['office_address'] ?? 'Не указан') . ' &middot; 
@@ -124,25 +126,25 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
         </div>
         
         <div style="display:flex; align-items:center; gap:10px;">
-            <button class="upvote-btn" onclick="vote(' . $msg['id'] . ', \'up\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === 1 ? '#16a085' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
-            <span class="score" style="font-weight:bold; color:#34495e;">' . ($msg['upvotes'] - $msg['downvotes']) . '</span>
-            <button class="downvote-btn" onclick="vote(' . $msg['id'] . ', \'down\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === -1 ? '#c0392b' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
+            <button class="upvote-btn" onclick="vote(' . $msg['id'] . ', \'up\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === 1 ? '#16a085' : 'var(--secondary-color)') . '; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
+            <span class="score" style="font-weight:bold; color:var(--text-color);">' . ($msg['upvotes'] - $msg['downvotes']) . '</span>
+            <button class="downvote-btn" onclick="vote(' . $msg['id'] . ', \'down\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === -1 ? '#c0392b' : 'var(--secondary-color)') . '; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
             
             ' . ($is_admin || $msg['user_id'] == $current_user_id ? '
-            <button class="edit-btn" onclick="editMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#f39c12; margin-left:10px;"><i class="fas fa-edit"></i> Редактировать</button>
-            <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#e74c3c; margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
+            <button class="edit-btn" onclick="editMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--warning-color); margin-left:10px;"><i class="fas fa-edit"></i> Редактировать</button>
+            <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--danger-color); margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
             ' : '') . '
             
-            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
+            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
         </div>
         
         <div id="reply-form-' . $msg['id'] . '" style="display:none; margin-top:15px;">
-            <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
-            <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
+            <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);"></textarea>
+            <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
         </div>
 
         <div>
-            <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
+            <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
             <div id="replies-' . $msg['id'] . '" style="display:none; margin-top:15px;"></div>
         </div>
     </div>';
@@ -150,11 +152,11 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 ?>
 
 <!-- ФОРМА ДОБАВЛЕНИЯ СООБЩЕНИЯ -->
-<div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:40px;">
-    <h2 style="margin-bottom:25px; color:#2c3e50;">Новое предложение или жалоба</h2>
+<div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:40px;">
+    <h2 style="margin-bottom:25px; color:var(--text-color);">Новое предложение или жалоба</h2>
     <form method="POST">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom:20px;">
-            <select name="city_id" id="city-select" required>
+            <select name="city_id" id="city-select" required style="padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);">
                 <option value="">Выберите город</option>
                 <?php
                 $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
@@ -165,15 +167,15 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                 ?>
             </select>
 
-            <select name="company_id" id="company-select" required>
+            <select name="company_id" id="company-select" required style="padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);">
                 <option value="">Выберите компанию</option>
             </select>
 
-            <select name="office_id" id="office-select" required>
+            <select name="office_id" id="office-select" required style="padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);">
                 <option value="">Выберите офис</option>
             </select>
 
-            <select name="type_id" required>
+            <select name="type_id" required style="padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);">
                 <option value="">Тип сообщения</option>
                 <?php
                 $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
@@ -186,20 +188,20 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
         </div>
 
         <textarea name="message" placeholder="Текст..." required
-            style="width:100%; min-height:140px; padding:15px; border:1px solid #ddd; border-radius:8px; font-size:16px; margin-bottom:20px;"></textarea>
+            style="width:100%; min-height:140px; padding:15px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; margin-bottom:20px; background:var(--card-bg); color:var(--text-color);"></textarea>
 
         <button type="submit"
-            style="padding:14px 32px; background:#3498db; color:white; border:none; border-radius:8px; font-size:18px; cursor:pointer;">Отправить</button>
+            style="padding:14px 32px; background:var(--primary-color); color:white; border:none; border-radius:8px; font-size:18px; cursor:pointer;">Отправить</button>
     </form>
 </div>
 
 <!-- БЛОК СОРТИРОВКИ И ФИЛЬТРОВ -->
-<div style="background:white; padding:25px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:30px;">
+<div style="background:var(--card-bg); padding:25px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:30px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
         <!-- ФИЛЬТРЫ -->
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <form method="GET" style="display: flex; gap: 10px; align-items: center;">
-                <select name="city" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:150px;">
+                <select name="city" onchange="this.form.submit()" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; min-width:150px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все города</option>
                     <?php
                     $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
@@ -210,7 +212,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                     ?>
                 </select>
 
-                <select name="company" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:180px;">
+                <select name="company" onchange="this.form.submit()" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; min-width:180px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все компании</option>
                     <?php
                     $companies = $pdo->query("SELECT id, name FROM companies ORDER BY name")->fetchAll();
@@ -221,7 +223,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
                     ?>
                 </select>
 
-                <select name="type" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; min-width:160px;">
+                <select name="type" onchange="this.form.submit()" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; min-width:160px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все типы</option>
                     <?php
                     $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
@@ -242,9 +244,9 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 
         <!-- СОРТИРОВКА -->
         <div style="display: flex; gap: 10px; align-items: center;">
-            <span style="color:#7f8c8d; font-weight:500;">Сортировка:</span>
+            <span style="color:var(--secondary-color); font-weight:500;">Сортировка:</span>
             <form method="GET" style="display: flex; gap: 10px;">
-                <select name="sort" onchange="this.form.submit()" style="padding:10px; border:1px solid #ddd; border-radius:6px; background:white; min-width:180px;">
+                <select name="sort" onchange="this.form.submit()" style="padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color); min-width:180px;">
                     <option value="score" <?= $sort == 'score' ? 'selected' : '' ?>>По рейтингу</option>
                     <option value="upvotes" <?= $sort == 'upvotes' ? 'selected' : '' ?>>По лайкам</option>
                     <option value="downvotes" <?= $sort == 'downvotes' ? 'selected' : '' ?>>По дизлайкам</option>
@@ -272,7 +274,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     <!-- КНОПКА СБРОСА ФИЛЬТРОВ -->
     <?php if ($city_id || $company_id || $office_id || $type_id || $sort != 'score'): ?>
     <div style="margin-top:15px; text-align:center;">
-        <a href="index.php" style="color:#e74c3c; text-decoration:none; font-size:14px;">
+        <a href="index.php" style="color:var(--danger-color); text-decoration:none; font-size:14px;">
             <i class="fas fa-times"></i> Сбросить все фильтры
         </a>
     </div>

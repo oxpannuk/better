@@ -1,11 +1,13 @@
 <?php
-$page_title = "Поиск сообщений";
-require 'header.php';
+session_start();
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
+
+$page_title = "Поиск сообщений";
+require 'header.php';
 
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
@@ -113,23 +115,23 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     $highlighted_username = $msg['username'];
     
     if (!empty($query)) {
-        $highlighted_message = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7;">$1</mark>', htmlspecialchars($msg['message']));
-        $highlighted_username = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7;">$1</mark>', htmlspecialchars($msg['username']));
+        $highlighted_message = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7; color: #000;">$1</mark>', htmlspecialchars($msg['message']));
+        $highlighted_username = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7; color: #000;">$1</mark>', htmlspecialchars($msg['username']));
     } else {
         $highlighted_message = nl2br(htmlspecialchars($msg['message']));
         $highlighted_username = htmlspecialchars($msg['username']);
     }
 
     echo '
-    <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid #3498db; padding:20px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin-bottom:20px;">
+    <div class="message" id="msg-' . $msg['id'] . '" data-user-vote="' . $user_vote . '" style="margin-left: ' . $indent . 'px; border-left:3px solid var(--primary-color); padding:20px; background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow); margin-bottom:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-weight:bold; color:#3498db;">' . $highlighted_username . '</span>
-            <span style="color:#95a5a6; font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
+            <span style="font-weight:bold; color:var(--primary-color);">' . $highlighted_username . '</span>
+            <span style="color:var(--secondary-color); font-size:0.9em;">' . date('d.m.Y H:i', strtotime($msg['created_at'])) . '</span>
         </div>
         
-        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px;">' . $highlighted_message . '</div>
+        <div class="msg-text" data-id="' . $msg['id'] . '" style="margin-bottom:15px; color:var(--text-color);">' . $highlighted_message . '</div>
         
-        <div style="color:#7f8c8d; font-size:0.9em; margin-bottom:10px;">
+        <div style="color:var(--secondary-color); font-size:0.9em; margin-bottom:10px;">
             <i class="fas fa-map-marker-alt" style="margin-right:5px;"></i>' . htmlspecialchars($msg['city_name'] ?? 'Не указан') . ' &middot; 
             <i class="fas fa-building" style="margin-right:5px;"></i>' . htmlspecialchars($msg['company_name'] ?? 'Не указана') . ' &middot; 
             <i class="fas fa-home" style="margin-right:5px;"></i>' . htmlspecialchars($msg['office_address'] ?? 'Не указан') . ' &middot; 
@@ -137,25 +139,25 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
         </div>
         
         <div style="display:flex; align-items:center; gap:10px;">
-            <button class="upvote-btn" onclick="vote(' . $msg['id'] . ', \'up\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === 1 ? '#16a085' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
-            <span class="score" style="font-weight:bold; color:#34495e;">' . ($msg['upvotes'] - $msg['downvotes']) . '</span>
-            <button class="downvote-btn" onclick="vote(' . $msg['id'] . ', \'down\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === -1 ? '#c0392b' : '#bdc3c7') . '; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
+            <button class="upvote-btn" onclick="vote(' . $msg['id'] . ', \'up\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === 1 ? '#16a085' : 'var(--secondary-color)') . '; font-size:1.2em;"><i class="fas fa-thumbs-up"></i></button>
+            <span class="score" style="font-weight:bold; color:var(--text-color);">' . ($msg['upvotes'] - $msg['downvotes']) . '</span>
+            <button class="downvote-btn" onclick="vote(' . $msg['id'] . ', \'down\')" style="background:none; border:none; cursor:pointer; color:' . ($user_vote === -1 ? '#c0392b' : 'var(--secondary-color)') . '; font-size:1.2em;"><i class="fas fa-thumbs-down"></i></button>
             
             ' . ($is_admin || $msg['user_id'] == $current_user_id ? '
-            <button class="edit-btn" onclick="editMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#f39c12; margin-left:10px;"><i class="fas fa-edit"></i> Редактировать</button>
-            <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#e74c3c; margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
+            <button class="edit-btn" onclick="editMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--warning-color); margin-left:10px;"><i class="fas fa-edit"></i> Редактировать</button>
+            <button class="delete-btn" onclick="deleteMessage(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--danger-color); margin-left:10px;"><i class="fas fa-trash"></i> Удалить</button>
             ' : '') . '
             
-            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
+            <button onclick="toggleReply(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-left:10px;"><i class="fas fa-reply"></i> Ответить</button>
         </div>
         
         <div id="reply-form-' . $msg['id'] . '" style="display:none; margin-top:15px;">
-            <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid #ddd; border-radius:8px;"></textarea>
-            <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
+            <textarea id="reply-text-' . $msg['id'] . '" placeholder="Ваш ответ..." style="width:100%; min-height:80px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-color);"></textarea>
+            <button onclick="submitReply(' . $msg['id'] . ')" style="margin-top:10px; padding:8px 16px; background:var(--primary-color); color:white; border:none; border-radius:6px; cursor:pointer;">Отправить</button>
         </div>
 
         <div>
-            <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:#3498db; margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
+            <button id="show-replies-' . $msg['id'] . '" onclick="loadReplies(' . $msg['id'] . ')" style="background:none; border:none; cursor:pointer; color:var(--primary-color); margin-top:10px;">' . ($replies_count > 0 ? 'Показать ответы (' . $replies_count . ')' : 'Нет ответов') . '</button>
             <div id="replies-' . $msg['id'] . '" style="display:none; margin-top:15px;"></div>
         </div>
     </div>';
@@ -163,15 +165,15 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 ?>
 
 <!-- РЕЗУЛЬТАТЫ ПОИСКА -->
-<div style="background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-bottom:30px;">
-    <h1 style="color:#2c3e50; margin-bottom:20px;">
+<div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:30px;">
+    <h1 style="color:var(--text-color); margin-bottom:20px;">
         <i class="fas fa-search"></i> Результаты поиска
         <?php if (!empty($query)): ?>
-            <span style="color:#7f8c8d; font-size:0.8em;">по запросу: "<?= htmlspecialchars($query) ?>"</span>
+            <span style="color:var(--secondary-color); font-size:0.8em;">по запросу: "<?= htmlspecialchars($query) ?>"</span>
         <?php endif; ?>
     </h1>
 
-    <div style="color:#7f8c8d; margin-bottom:25px;">
+    <div style="color:var(--secondary-color); margin-bottom:25px;">
         Найдено сообщений: <strong><?= count($messages) ?></strong>
     </div>
 
@@ -179,20 +181,20 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     <form method="GET" style="margin-bottom:25px;">
         <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
             <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:#2c3e50;">Поиск по сообщениям</label>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-color);">Поиск по сообщениям</label>
                 <input type="text" name="q" value="<?= htmlspecialchars($query) ?>" 
                        placeholder="Введите текст для поиска..." 
-                       style="width:100%; padding:12px; border:2px solid #3498db; border-radius:8px; font-size:16px;">
+                       style="width:100%; padding:12px; border:2px solid var(--primary-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);">
             </div>
-            <button type="submit" style="padding:12px 24px; background:#3498db; color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
+            <button type="submit" style="padding:12px 24px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
                 <i class="fas fa-search"></i> Искать
             </button>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top:20px;">
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Город</label>
-                <select name="city" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Город</label>
+                <select name="city" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все города</option>
                     <?php
                     $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
@@ -205,8 +207,8 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             </div>
 
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Компания</label>
-                <select name="company" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Компания</label>
+                <select name="company" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все компании</option>
                     <?php
                     $companies = $pdo->query("SELECT id, name FROM companies ORDER BY name")->fetchAll();
@@ -219,8 +221,8 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             </div>
 
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Тип</label>
-                <select name="type" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Тип</label>
+                <select name="type" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все типы</option>
                     <?php
                     $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
@@ -233,8 +235,8 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             </div>
 
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:#2c3e50;">Сортировка</label>
-                <select name="sort" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Сортировка</label>
+                <select name="sort" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="relevance" <?= $sort == 'relevance' ? 'selected' : '' ?>>По релевантности</option>
                     <option value="score" <?= $sort == 'score' ? 'selected' : '' ?>>По рейтингу</option>
                     <option value="upvotes" <?= $sort == 'upvotes' ? 'selected' : '' ?>>По лайкам</option>
@@ -248,7 +250,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     <!-- КНОПКА СБРОСА -->
     <?php if (!empty($query) || $city_id || $company_id || $type_id): ?>
     <div style="text-align:center; margin-top:15px;">
-        <a href="search.php" style="color:#e74c3c; text-decoration:none; font-size:14px;">
+        <a href="search.php" style="color:var(--danger-color); text-decoration:none; font-size:14px;">
             <i class="fas fa-times"></i> Сбросить поиск и фильтры
         </a>
     </div>
@@ -262,11 +264,11 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             <?php renderMessage($msg, $user_id, $is_admin); ?>
         <?php endforeach; ?>
     <?php else: ?>
-        <div style="text-align:center; padding:50px; background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-            <i class="fas fa-search" style="font-size:48px; color:#bdc3c7; margin-bottom:20px;"></i>
-            <h3 style="color:#7f8c8d; margin-bottom:15px;">Сообщения не найдены</h3>
-            <p style="color:#95a5a6;">Попробуйте изменить поисковый запрос или фильтры</p>
-            <a href="index.php" style="display:inline-block; margin-top:20px; padding:10px 20px; background:#3498db; color:white; text-decoration:none; border-radius:6px;">
+        <div style="text-align:center; padding:50px; background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow);">
+            <i class="fas fa-search" style="font-size:48px; color:var(--secondary-color); margin-bottom:20px;"></i>
+            <h3 style="color:var(--secondary-color); margin-bottom:15px;">Сообщения не найдены</h3>
+            <p style="color:var(--secondary-color);">Попробуйте изменить поисковый запрос или фильтры</p>
+            <a href="index.php" style="display:inline-block; margin-top:20px; padding:10px 20px; background:var(--primary-color); color:white; text-decoration:none; border-radius:6px;">
                 <i class="fas fa-arrow-left"></i> Вернуться на главную
             </a>
         </div>
@@ -315,8 +317,8 @@ function vote(id, type) {
 
                 const upBtn = msgEl.querySelector('.upvote-btn');
                 const downBtn = msgEl.querySelector('.downvote-btn');
-                upBtn.style.color = newVote === 1 ? '#16a085' : '#bdc3c7';
-                downBtn.style.color = newVote === -1 ? '#c0392b' : '#bdc3c7';
+                upBtn.style.color = newVote === 1 ? '#16a085' : 'var(--secondary-color)';
+                downBtn.style.color = newVote === -1 ? '#c0392b' : 'var(--secondary-color)';
 
                 msgEl.dataset.userVote = newVote;
             } else {
@@ -364,17 +366,17 @@ function editMessage(id) {
     const textarea = document.createElement('textarea');
     textarea.value = currentText;
     textarea.style.cssText =
-        'width:100%; min-height:120px; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:16px;';
+        'width:100%; min-height:120px; padding:12px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);';
 
     const saveBtn = document.createElement('button');
     saveBtn.textContent = 'Сохранить';
     saveBtn.style.cssText =
-        'margin-top:10px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:6px; cursor:pointer;';
+        'margin-top:10px; padding:10px 20px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;';
 
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Отмена';
     cancelBtn.style.cssText =
-        'margin-top:10px; margin-left:10px; padding:10px 20px; background:#95a5a6; color:white; border:none; border-radius:6px; cursor:pointer;';
+        'margin-top:10px; margin-left:10px; padding:10px 20px; background:var(--secondary-color); color:white; border:none; border-radius:6px; cursor:pointer;';
 
     cancelBtn.onclick = () => textDiv.innerHTML = originalHTML;
 
@@ -456,7 +458,7 @@ function loadReplies(id) {
         return;
     }
 
-    repliesDiv.innerHTML = '<div style="text-align: center; color: #3498db; padding: 20px;">Загрузка ответов...</div>';
+    repliesDiv.innerHTML = '<div style="text-align: center; color: var(--primary-color); padding: 20px;">Загрузка ответов...</div>';
     repliesDiv.style.display = 'block';
 
     fetch(`api.php?action=get_replies&parent_id=${id}`)
@@ -473,7 +475,7 @@ function loadReplies(id) {
                     replyElement.id = `msg-${reply.id}`;
                     replyElement.setAttribute('data-user-vote', reply.user_vote || 0);
                     replyElement.style.cssText =
-                        'margin-left: 40px; border-left: 3px solid #3498db; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;';
+                        'margin-left: 40px; border-left: 3px solid var(--primary-color); padding: 20px; background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 20px;';
 
                     // Подсветка поиска в ответах
                     let highlighted_reply_message = reply.message;
@@ -482,34 +484,34 @@ function loadReplies(id) {
                     if (!empty($query)) {
                         highlighted_reply_message = reply.message.replace(
                             new RegExp("(" + $query + ")", "gi"), 
-                            '<mark style="background:#ffeaa7;">$1</mark>'
+                            '<mark style="background:#ffeaa7; color: #000;">$1</mark>'
                         );
                         highlighted_reply_username = reply.username.replace(
                             new RegExp("(" + $query + ")", "gi"), 
-                            '<mark style="background:#ffeaa7;">$1</mark>'
+                            '<mark style="background:#ffeaa7; color: #000;">$1</mark>'
                         );
                     }
 
                     replyElement.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-weight: bold; color: #3498db;">${highlighted_reply_username}</span>
-                            <span style="color: #95a5a6; font-size: 0.9em;">${reply.created_at_formatted || reply.created_at}</span>
+                            <span style="font-weight: bold; color: var(--primary-color);">${highlighted_reply_username}</span>
+                            <span style="color: var(--secondary-color); font-size: 0.9em;">${reply.created_at_formatted || reply.created_at}</span>
                         </div>
-                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line;">${highlighted_reply_message}</div>
+                        <div class="msg-text" data-id="${reply.id}" style="margin-bottom: 15px; white-space: pre-line; color: var(--text-color);">${highlighted_reply_message}</div>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <button class="upvote-btn" onclick="vote(${reply.id}, 'up')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == 1 ? '#16a085' : '#bdc3c7'}; font-size: 1.2em;">
+                            <button class="upvote-btn" onclick="vote(${reply.id}, 'up')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == 1 ? '#16a085' : 'var(--secondary-color)'}; font-size: 1.2em;">
                                 <i class="fas fa-thumbs-up"></i>
                             </button>
-                            <span class="score" style="font-weight: bold; color: #34495e;">${reply.score || 0}</span>
-                            <button class="downvote-btn" onclick="vote(${reply.id}, 'down')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == -1 ? '#c0392b' : '#bdc3c7'}; font-size: 1.2em;">
+                            <span class="score" style="font-weight: bold; color: var(--text-color);">${reply.score || 0}</span>
+                            <button class="downvote-btn" onclick="vote(${reply.id}, 'down')" style="background: none; border: none; cursor: pointer; color: ${reply.user_vote == -1 ? '#c0392b' : 'var(--secondary-color)'}; font-size: 1.2em;">
                                 <i class="fas fa-thumbs-down"></i>
                             </button>
                             
                             ${canEditDelete ? `
-                            <button class="edit-btn" onclick="editMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: #f39c12; margin-left: 10px;">
+                            <button class="edit-btn" onclick="editMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--warning-color); margin-left: 10px;">
                                 <i class="fas fa-edit"></i> Редактировать
                             </button>
-                            <button class="delete-btn" onclick="deleteMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: #e74c3c; margin-left: 10px;">
+                            <button class="delete-btn" onclick="deleteMessage(${reply.id})" style="background: none; border: none; cursor: pointer; color: var(--danger-color); margin-left: 10px;">
                                 <i class="fas fa-trash"></i> Удалить
                             </button>
                             ` : ''}
@@ -520,7 +522,7 @@ function loadReplies(id) {
                 });
             } else {
                 repliesDiv.innerHTML =
-                    '<div style="text-align: center; color: #7f8c8d; padding: 20px;">Ответов пока нет</div>';
+                    '<div style="text-align: center; color: var(--secondary-color); padding: 20px;">Ответов пока нет</div>';
             }
 
             showButton.textContent = showButton.textContent.replace('Показать', 'Скрыть');
@@ -528,7 +530,7 @@ function loadReplies(id) {
         .catch(error => {
             console.error('Ошибка загрузки ответов:', error);
             repliesDiv.innerHTML =
-                '<div style="color: #e74c3c; padding: 10px; text-align: center;">Ошибка загрузки ответов</div>';
+                '<div style="color: var(--danger-color); padding: 10px; text-align: center;">Ошибка загрузки ответов</div>';
         });
 }
 </script>

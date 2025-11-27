@@ -1,9 +1,61 @@
 </main>
-<footer style="background:#2c3e50; color:white; text-align:center; padding:20px; margin-top:40px;">
+<footer style="background:var(--header-bg); color:var(--header-text); text-align:center; padding:20px; margin-top:40px;">
     <div class="container">
         &copy; <?= date('Y') ?> better. Все права защищены.
     </div>
 </footer>
+<script>
+// Управление темной темой
+const toggleSwitch = document.querySelector('#checkbox');
+const currentTheme = localStorage.getItem('theme');
+
+// Устанавливаем текущую тему
+if (currentTheme) {
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    
+    if (currentTheme === 'dark') {
+        toggleSwitch.checked = true;
+        updateThemeIcon('dark');
+    }
+}
+
+// Функция переключения темы
+function switchTheme(e) {
+    if (e.target.checked) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        updateThemeIcon('dark');
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+        updateThemeIcon('light');
+    }
+}
+
+// Функция обновления иконки темы
+function updateThemeIcon(theme) {
+    const themeIcon = document.querySelector('.theme-icon i');
+    if (theme === 'dark') {
+        themeIcon.className = 'fas fa-sun';
+    } else {
+        themeIcon.className = 'fas fa-moon';
+    }
+}
+
+// Слушатель события для переключателя
+toggleSwitch.addEventListener('change', switchTheme);
+
+// Автоматическое определение системной темы
+if (!currentTheme) {
+    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    if (prefersDarkScheme.matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        toggleSwitch.checked = true;
+        updateThemeIcon('dark');
+        localStorage.setItem('theme', 'dark');
+    }
+}
+</script>
 <style>
 /* Simple and reliable footer solution */
 html, body {
@@ -27,8 +79,8 @@ main {
 footer {
     flex-shrink: 0;
     /* Футер не сжимается */
-    background: #2c3e50;
-    color: white;
+    background: var(--header-bg);
+    color: var(--header-text);
     text-align: center;
     padding: 20px;
     width: 100%;
