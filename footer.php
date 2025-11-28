@@ -1,70 +1,71 @@
 </main>
-<footer style="background:var(--header-bg); color:var(--header-text); text-align:center; padding:20px; margin-top:40px;">
+<footer
+    style="background:var(--header-bg); color:var(--header-text); text-align:center; padding:20px; margin-top:40px;">
     <div class="container">
         &copy; <?= date('Y') ?> better. Все права защищены.
     </div>
 </footer>
 
 <style>
-    /* Simple and reliable footer solution */
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-    }
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
 
-    body {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-    }
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
 
-    main {
-        flex: 1 0 auto;
-        width: 100%;
-    }
+main {
+    flex: 1 0 auto;
+    width: 100%;
+}
 
+footer {
+    flex-shrink: 0;
+    background: var(--header-bg);
+    color: var(--header-text);
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+}
+
+/* адаптив футера */
+@media (max-width: 768px) {
     footer {
-        flex-shrink: 0;
-        background: var(--header-bg);
-        color: var(--header-text);
-        text-align: center;
-        padding: 20px;
-        width: 100%;
+        padding: 15px;
+        font-size: 0.9em;
     }
+}
 
-    /* Мобильная адаптивность для футера */
-    @media (max-width: 768px) {
-        footer {
-            padding: 15px;
-            font-size: 0.9em;
-        }
+@media (max-width: 480px) {
+    footer {
+        padding: 12px;
+        font-size: 0.85em;
     }
-    
-    @media (max-width: 480px) {
-        footer {
-            padding: 12px;
-            font-size: 0.85em;
-        }
-    }
+}
 </style>
 
 <script>
-// Управление темной темой
+// управление темной темой
 const toggleSwitch = document.querySelector('#checkbox');
 const currentTheme = localStorage.getItem('theme');
 
-// Устанавливаем текущую тему
+// текущая тема
 if (currentTheme) {
     document.documentElement.setAttribute('data-theme', currentTheme);
-    
+
     if (currentTheme === 'dark') {
         toggleSwitch.checked = true;
         updateThemeIcon('dark');
     }
 }
 
-// Функция переключения темы
+//  переключение темы
 function switchTheme(e) {
     if (e.target.checked) {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -77,7 +78,7 @@ function switchTheme(e) {
     }
 }
 
-// Функция обновления иконки темы
+// функция обновления иконки темы
 function updateThemeIcon(theme) {
     const themeIcon = document.querySelector('.theme-icon i');
     if (theme === 'dark') {
@@ -87,10 +88,10 @@ function updateThemeIcon(theme) {
     }
 }
 
-// Слушатель события для переключателя
+// слушатель события для переключателя
 toggleSwitch.addEventListener('change', switchTheme);
 
-// Автоматическое определение системной темы
+// автоматическое определение системной темы
 if (!currentTheme) {
     const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
     if (prefersDarkScheme.matches) {
@@ -102,4 +103,5 @@ if (!currentTheme) {
 }
 </script>
 </body>
+
 </html>

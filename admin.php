@@ -1,7 +1,5 @@
 <?php
 $page_title = "Админ-панель";
-
-/* === СЕССИЯ И БД СРАЗУ === */
 session_start();
 require_once 'db.php';
 
@@ -16,7 +14,7 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? 'user') !== 'admin') {
     exit;
 }
 
-/* AJAX — удаление и редактирование сообщений  */
+/* ajax удаление и редактирование сообщений  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
 
@@ -46,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     exit;
 }
 
-/* ОБЫЧНЫЕ POST — справочники*/
+/* пост справочники*/
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_city']) && trim($_POST['city_name'] ?? '')) {
         $pdo->prepare("INSERT INTO cities (name) VALUES (?)")->execute([trim($_POST['city_name'])]);
@@ -79,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-/* ДАННЫЕ ДЛЯ СТРАНИЦЫ */
 $cities = $pdo->query("SELECT * FROM cities ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 $companies = $pdo->query("SELECT * FROM companies ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -103,7 +100,7 @@ require 'header.php';
 
 <h1 style="margin-bottom: 30px; color:var(--text-color);">Админ-панель</h1>
 
-<!-- ====================== УПРАВЛЕНИЕ СПРАВОЧНИКАМИ ====================== -->
+<!--  УПРАВЛЕНИЕ СПРАВОЧНИКАМИ  -->
 <div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:50px;">
     <h2 style="color:var(--text-color); margin-bottom:25px;">Управление справочниками</h2>
 
@@ -111,26 +108,33 @@ require 'header.php';
     <div style="margin-bottom:50px;">
         <h3 style="color:var(--primary-color);">Города</h3>
         <form method="POST" style="margin:20px 0;">
-            <input type="text" name="city_name" placeholder="Новый город" required style="padding:12px; width:300px; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
-            <button name="add_city" type="submit" style="padding:12px 24px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить</button>
+            <input type="text" name="city_name" placeholder="Новый город" required
+                style="padding:12px; width:300px; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
+            <button name="add_city" type="submit"
+                style="padding:12px 24px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить</button>
         </form>
 
         <table style="width:100%; border-collapse:collapse;">
             <thead style="background:var(--header-bg);">
-                <tr><th style="text-align:left;padding:15px; color:var(--header-text);">ID</th><th style="text-align:left;padding:15px; color:var(--header-text);">Название</th><th style="padding:15px; color:var(--header-text);">Действие</th></tr>
+                <tr>
+                    <th style="text-align:left;padding:15px; color:var(--header-text);">ID</th>
+                    <th style="text-align:left;padding:15px; color:var(--header-text);">Название</th>
+                    <th style="padding:15px; color:var(--header-text);">Действие</th>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($cities as $c): ?>
-                <tr style="border-bottom:1px solid var(--border-color);">
-                    <td style="padding:15px; color:var(--text-color);"><?= $c['id'] ?></td>
-                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($c['name']) ?></td>
-                    <td style="padding:15px;">
-                        <form method="POST" style="display:inline;">
-                            <input type="hidden" name="city_id" value="<?= $c['id'] ?>">
-                            <button name="delete_city" type="submit" onclick="return confirm('Удалить город?')" style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
-                        </form>
-                    </td>
-                </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:15px; color:var(--text-color);"><?= $c['id'] ?></td>
+                        <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($c['name']) ?></td>
+                        <td style="padding:15px;">
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="city_id" value="<?= $c['id'] ?>">
+                                <button name="delete_city" type="submit" onclick="return confirm('Удалить город?')"
+                                    style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
@@ -140,26 +144,33 @@ require 'header.php';
     <div style="margin-bottom:50px;">
         <h3 style="color:var(--primary-color);">Компании</h3>
         <form method="POST" style="margin:20px 0;">
-            <input type="text" name="company_name" placeholder="Новая компания" required style="padding:12px; width:400px; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
-            <button name="add_company" type="submit" style="padding:12px 24px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить</button>
+            <input type="text" name="company_name" placeholder="Новая компания" required
+                style="padding:12px; width:400px; border-radius:6px; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-color);">
+            <button name="add_company" type="submit"
+                style="padding:12px 24px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить</button>
         </form>
 
         <table style="width:100%; border-collapse:collapse;">
             <thead style="background:var(--header-bg);">
-                <tr><th style="text-align:left;padding:15px; color:var(--header-text);">ID</th><th style="text-align:left;padding:15px; color:var(--header-text);">Название</th><th style="padding:15px; color:var(--header-text);">Действие</th></tr>
+                <tr>
+                    <th style="text-align:left;padding:15px; color:var(--header-text);">ID</th>
+                    <th style="text-align:left;padding:15px; color:var(--header-text);">Название</th>
+                    <th style="padding:15px; color:var(--header-text);">Действие</th>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($companies as $comp): ?>
-                <tr style="border-bottom:1px solid var(--border-color);">
-                    <td style="padding:15px; color:var(--text-color);"><?= $comp['id'] ?></td>
-                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($comp['name']) ?></td>
-                    <td style="padding:15px;">
-                        <form method="POST" style="display:inline;">
-                            <input type="hidden" name="company_id" value="<?= $comp['id'] ?>">
-                            <button name="delete_company" type="submit" onclick="return confirm('Удалить компанию?')" style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
-                        </form>
-                    </td>
-                </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:15px; color:var(--text-color);"><?= $comp['id'] ?></td>
+                        <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($comp['name']) ?></td>
+                        <td style="padding:15px;">
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="company_id" value="<?= $comp['id'] ?>">
+                                <button name="delete_company" type="submit" onclick="return confirm('Удалить компанию?')"
+                                    style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
@@ -169,22 +180,28 @@ require 'header.php';
     <div>
         <h3 style="color:var(--primary-color);">Офисы</h3>
         <form method="POST" style="margin:20px 0;">
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:15px; margin-bottom:15px;">
-                <select name="office_city_id" required style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+            <div
+                style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:15px; margin-bottom:15px;">
+                <select name="office_city_id" required
+                    style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Город</option>
                     <?php foreach ($cities as $c): ?>
                         <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <select name="office_company_id" required style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <select name="office_company_id" required
+                    style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Компания</option>
                     <?php foreach ($companies as $comp): ?>
                         <option value="<?= $comp['id'] ?>"><?= htmlspecialchars($comp['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <input type="text" name="office_address" placeholder="Адрес офиса" required style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <input type="text" name="office_address" placeholder="Адрес офиса" required
+                    style="padding:12px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
             </div>
-            <button name="add_office" type="submit" style="padding:12px 28px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить офис</button>
+            <button name="add_office" type="submit"
+                style="padding:12px 28px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;">Добавить
+                офис</button>
         </form>
 
         <table style="width:100%; border-collapse:collapse;">
@@ -199,28 +216,31 @@ require 'header.php';
             </thead>
             <tbody>
                 <?php foreach ($offices as $o): ?>
-                <tr style="border-bottom:1px solid var(--border-color);">
-                    <td style="padding:15px; color:var(--text-color);"><?= $o['id'] ?></td>
-                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['address']) ?></td>
-                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['city_name']) ?></td>
-                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['company_name']) ?></td>
-                    <td style="padding:15px; text-align:center;">
-                        <form method="POST" style="display:inline;">
-                            <input type="hidden" name="office_id" value="<?= $o['id'] ?>">
-                            <button name="delete_office" type="submit" onclick="return confirm('Удалить офис?')" style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
-                        </form>
-                    </td>
-                </tr>
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:15px; color:var(--text-color);"><?= $o['id'] ?></td>
+                        <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['address']) ?></td>
+                        <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['city_name']) ?></td>
+                        <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($o['company_name']) ?></td>
+                        <td style="padding:15px; text-align:center;">
+                            <form method="POST" style="display:inline;">
+                                <input type="hidden" name="office_id" value="<?= $o['id'] ?>">
+                                <button name="delete_office" type="submit" onclick="return confirm('Удалить офис?')"
+                                    style="background:var(--danger-color);color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- МОДЕРАЦИЯ СООБЩЕНИЙ -->
+<!-- модерация сообщений  -->
 <div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow);">
     <h2 style="color:var(--text-color); margin-bottom:25px;">Модерация сообщений</h2>
-    <p style="color:var(--secondary-color); margin-bottom:20px;">Всего сообщений: <strong><?= count($messages) ?></strong></p>
+    <p style="color:var(--secondary-color); margin-bottom:20px;">Всего сообщений:
+        <strong><?= count($messages) ?></strong>
+    </p>
 
     <table style="width:100%; border-collapse:collapse;">
         <thead style="background:var(--header-bg);">
@@ -234,96 +254,108 @@ require 'header.php';
         </thead>
         <tbody>
             <?php foreach ($messages as $msg): ?>
-            <tr style="border-bottom:1px solid var(--border-color);" data-id="<?= $msg['id'] ?>">
-                <td style="padding:15px;font-family:monospace; color:var(--text-color);"><?= $msg['id'] ?></td>
-                <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($msg['username']) ?></td>
-                <td style="padding:15px;color:var(--secondary-color);"><?= date('d.m.Y H:i', strtotime($msg['created_at'])) ?></td>
-                <td style="padding:15px; color:var(--text-color);" class="msg-text"><?= nl2br(htmlspecialchars($msg['message'])) ?></td>
-                <td style="padding:15px;text-align:center;">
-                    <button class="edit-btn" data-id="<?= $msg['id'] ?>" style="background:var(--warning-color);color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Редактировать</button>
-                    <button class="delete-btn" data-id="<?= $msg['id'] ?>" style="background:var(--danger-color);color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Удалить</button>
-                </td>
-            </tr>
+                <tr style="border-bottom:1px solid var(--border-color);" data-id="<?= $msg['id'] ?>">
+                    <td style="padding:15px;font-family:monospace; color:var(--text-color);"><?= $msg['id'] ?></td>
+                    <td style="padding:15px; color:var(--text-color);"><?= htmlspecialchars($msg['username']) ?></td>
+                    <td style="padding:15px;color:var(--secondary-color);">
+                        <?= date('d.m.Y H:i', strtotime($msg['created_at'])) ?></td>
+                    <td style="padding:15px; color:var(--text-color);" class="msg-text">
+                        <?= nl2br(htmlspecialchars($msg['message'])) ?></td>
+                    <td style="padding:15px;text-align:center;">
+                        <button class="edit-btn" data-id="<?= $msg['id'] ?>"
+                            style="background:var(--warning-color);color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Редактировать</button>
+                        <button class="delete-btn" data-id="<?= $msg['id'] ?>"
+                            style="background:var(--danger-color);color:white;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;margin:0 5px;">Удалить</button>
+                    </td>
+                </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
 
 <script>
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('delete-btn')) {
-        if (!confirm('Удалить сообщение и все ответы?')) return;
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-btn')) {
+            if (!confirm('Удалить сообщение и все ответы?')) return;
 
-        const id = e.target.dataset.id;
-        const row = e.target.closest('tr');
-
-        fetch('admin.php', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'ajax_action=delete_message&id=' + id
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                row.remove();
-            } else {
-                alert('Ошибка удаления');
-            }
-        })
-        .catch(() => alert('Ошибка сети'));
-    }
-
-    if (e.target.classList.contains('edit-btn')) {
-        const id = e.target.dataset.id;
-        const row = e.target.closest('tr');
-        const cell = row.querySelector('.msg-text');
-        const originalHTML = cell.innerHTML;
-        const currentText = cell.textContent.trim();
-
-        const textarea = document.createElement('textarea');
-        textarea.value = currentText;
-        textarea.style.cssText = 'width:100%; min-height:120px; padding:12px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);';
-
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Сохранить';
-        saveBtn.style.cssText = 'margin-top:10px; padding:10px 20px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;';
-
-        const cancelBtn = document.createElement('button');
-        cancelBtn.textContent = 'Отмена';
-        cancelBtn.style.cssText = 'margin-top:10px; margin-left:10px; padding:10px 20px; background:var(--secondary-color); color:white; border:none; border-radius:6px; cursor:pointer;';
-
-        cancelBtn.onclick = () => cell.innerHTML = originalHTML;
-
-        saveBtn.onclick = () => {
-            const newText = textarea.value.trim();
-            if (!newText) return alert('Сообщение не может быть пустым');
+            const id = e.target.dataset.id;
+            const row = e.target.closest('tr');
 
             fetch('admin.php', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'ajax_action=update_message&id=' + id + '&message=' + encodeURIComponent(newText)
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    cell.innerHTML = data.html;
-                } else {
-                    alert('Ошибка');
-                    cell.innerHTML = originalHTML;
-                }
-            })
-            .catch(() => alert('Ошибка сети'));
-        };
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'ajax_action=delete_message&id=' + id
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        row.remove();
+                    } else {
+                        alert('Ошибка удаления');
+                    }
+                })
+                .catch(() => alert('Ошибка сети'));
+        }
 
-        cell.innerHTML = '';
-        cell.appendChild(textarea);
-        cell.appendChild(document.createElement('br'));
-        cell.appendChild(saveBtn);
-        cell.appendChild(cancelBtn);
-    }
-});
+        if (e.target.classList.contains('edit-btn')) {
+            const id = e.target.dataset.id;
+            const row = e.target.closest('tr');
+            const cell = row.querySelector('.msg-text');
+            const originalHTML = cell.innerHTML;
+            const currentText = cell.textContent.trim();
+
+            const textarea = document.createElement('textarea');
+            textarea.value = currentText;
+            textarea.style.cssText =
+                'width:100%; min-height:120px; padding:12px; border:1px solid var(--border-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Сохранить';
+            saveBtn.style.cssText =
+                'margin-top:10px; padding:10px 20px; background:var(--success-color); color:white; border:none; border-radius:6px; cursor:pointer;';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Отмена';
+            cancelBtn.style.cssText =
+                'margin-top:10px; margin-left:10px; padding:10px 20px; background:var(--secondary-color); color:white; border:none; border-radius:6px; cursor:pointer;';
+
+            cancelBtn.onclick = () => cell.innerHTML = originalHTML;
+
+            saveBtn.onclick = () => {
+                const newText = textarea.value.trim();
+                if (!newText) return alert('Сообщение не может быть пустым');
+
+                fetch('admin.php', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: 'ajax_action=update_message&id=' + id + '&message=' + encodeURIComponent(
+                            newText)
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            cell.innerHTML = data.html;
+                        } else {
+                            alert('Ошибка');
+                            cell.innerHTML = originalHTML;
+                        }
+                    })
+                    .catch(() => alert('Ошибка сети'));
+            };
+
+            cell.innerHTML = '';
+            cell.appendChild(textarea);
+            cell.appendChild(document.createElement('br'));
+            cell.appendChild(saveBtn);
+            cell.appendChild(cancelBtn);
+        }
+    });
 </script>
 
 <?php require 'footer.php'; ?>

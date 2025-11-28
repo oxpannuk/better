@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 $is_admin = ($_SESSION['role'] ?? 'user') === 'admin';
 
-// === ПОИСК И ФИЛЬТРЫ ===
+//  поиск и фильтры 
 $query = trim($_GET['q'] ?? '');
 $city_id = $_GET['city'] ?? '';
 $company_id = $_GET['company'] ?? '';
@@ -42,7 +42,7 @@ if ($type_id) {
 
 $where_sql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
-// Определяем порядок сортировки
+// определение порядок сортировки
 switch ($sort) {
     case 'date_new':
         $order_by = 'm.created_at DESC';
@@ -58,7 +58,7 @@ switch ($sort) {
         break;
     case 'relevance':
     default:
-        // Если есть поисковый запрос, сортируем по релевантности
+        // если есть поисковый запрос, сортировка по релевантности
         if (!empty($query)) {
             $order_by = "
                 CASE 
@@ -77,7 +77,7 @@ switch ($sort) {
         break;
 }
 
-// ЗАПРОС СООБЩЕНИЙ
+// запрос
 $sql = "SELECT m.*, u.username, c.name as city_name, comp.name as company_name, o.address as office_address, t.name as type_name 
         FROM messages m 
         JOIN users u ON m.user_id = u.id 
@@ -92,7 +92,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $messages = $stmt->fetchAll();
 
-// Функция renderMessage такая же как в index.php
+// функция renderMessage
 function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 {
     global $pdo;
@@ -102,16 +102,16 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     $vote_stmt->execute([$msg['id'], $current_user_id]);
     $user_vote = $vote_stmt->fetchColumn() ?: 0;
 
-    // Подсчёт количества ответов
+    // подсчёт количества ответов
     $replies_count_stmt = $pdo->prepare("SELECT COUNT(*) FROM messages WHERE parent_id = ?");
     $replies_count_stmt->execute([$msg['id']]);
     $replies_count = $replies_count_stmt->fetchColumn();
 
-    // Подсветка поискового запроса
+    // подсветка поискового запроса
     global $query;
     $highlighted_message = $msg['message'];
     $highlighted_username = $msg['username'];
-    
+
     if (!empty($query)) {
         $highlighted_message = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7; color: #000;">$1</mark>', htmlspecialchars($msg['message']));
         $highlighted_username = preg_replace("/(" . preg_quote($query, '/') . ")/i", '<mark style="background:#ffeaa7; color: #000;">$1</mark>', htmlspecialchars($msg['username']));
@@ -163,12 +163,13 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 }
 ?>
 
-<!-- РЕЗУЛЬТАТЫ ПОИСКА -->
+<!-- рез-ты поиска -->
 <div style="background:var(--card-bg); padding:30px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:30px;">
     <h1 style="color:var(--text-color); margin-bottom:20px;">
         <i class="fas fa-search"></i> Результаты поиска
         <?php if (!empty($query)): ?>
-            <span style="color:var(--secondary-color); font-size:0.8em;">по запросу: "<?= htmlspecialchars($query) ?>"</span>
+        <span style="color:var(--secondary-color); font-size:0.8em;">по запросу:
+            "<?= htmlspecialchars($query) ?>"</span>
         <?php endif; ?>
     </h1>
 
@@ -176,24 +177,28 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
         Найдено сообщений: <strong><?= count($messages) ?></strong>
     </div>
 
-    <!-- ФОРМА ПОИСКА И ФИЛЬТРОВ -->
+    <!-- форма поиска и фильтров -->
     <form method="GET" style="margin-bottom:25px;">
         <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: end;">
             <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-color);">Поиск по сообщениям</label>
-                <input type="text" name="q" value="<?= htmlspecialchars($query) ?>" 
-                       placeholder="Введите текст для поиска..." 
-                       style="width:100%; padding:12px; border:2px solid var(--primary-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-color);">Поиск по
+                    сообщениям</label>
+                <input type="text" name="q" value="<?= htmlspecialchars($query) ?>"
+                    placeholder="Введите текст для поиска..."
+                    style="width:100%; padding:12px; border:2px solid var(--primary-color); border-radius:8px; font-size:16px; background:var(--card-bg); color:var(--text-color);">
             </div>
-            <button type="submit" style="padding:12px 24px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
+            <button type="submit"
+                style="padding:12px 24px; background:var(--primary-color); color:white; border:none; border-radius:8px; cursor:pointer; font-size:16px;">
                 <i class="fas fa-search"></i> Искать
             </button>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top:20px;">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top:20px;">
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Город</label>
-                <select name="city" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <select name="city"
+                    style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все города</option>
                     <?php
                     $cities = $pdo->query("SELECT id, name FROM cities ORDER BY name")->fetchAll();
@@ -206,8 +211,10 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             </div>
 
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Компания</label>
-                <select name="company" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <label
+                    style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Компания</label>
+                <select name="company"
+                    style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все компании</option>
                     <?php
                     $companies = $pdo->query("SELECT id, name FROM companies ORDER BY name")->fetchAll();
@@ -221,7 +228,8 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
 
             <div>
                 <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Тип</label>
-                <select name="type" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <select name="type"
+                    style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="">Все типы</option>
                     <?php
                     $types = $pdo->query("SELECT id, name FROM suggestion_types ORDER BY id")->fetchAll();
@@ -234,8 +242,10 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
             </div>
 
             <div>
-                <label style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Сортировка</label>
-                <select name="sort" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
+                <label
+                    style="display:block; margin-bottom:5px; font-weight:500; color:var(--text-color);">Сортировка</label>
+                <select name="sort"
+                    style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px; background:var(--card-bg); color:var(--text-color);">
                     <option value="relevance" <?= $sort == 'relevance' ? 'selected' : '' ?>>По релевантности</option>
                     <option value="score" <?= $sort == 'score' ? 'selected' : '' ?>>По рейтингу</option>
                     <option value="upvotes" <?= $sort == 'upvotes' ? 'selected' : '' ?>>По лайкам</option>
@@ -246,7 +256,7 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
         </div>
     </form>
 
-    <!-- КНОПКА СБРОСА -->
+    <!-- кнопка сброса -->
     <?php if (!empty($query) || $city_id || $company_id || $type_id): ?>
     <div style="text-align:center; margin-top:15px;">
         <a href="search.php" style="color:var(--danger-color); text-decoration:none; font-size:14px;">
@@ -256,31 +266,32 @@ function renderMessage($msg, $current_user_id, $is_admin, $depth = 0)
     <?php endif; ?>
 </div>
 
-<!-- РЕЗУЛЬТАТЫ -->
+<!-- рез-ты -->
 <div id="messages-list">
     <?php if (count($messages) > 0): ?>
-        <?php foreach ($messages as $msg): ?>
-            <?php renderMessage($msg, $user_id, $is_admin); ?>
-        <?php endforeach; ?>
+    <?php foreach ($messages as $msg): ?>
+    <?php renderMessage($msg, $user_id, $is_admin); ?>
+    <?php endforeach; ?>
     <?php else: ?>
-        <div style="text-align:center; padding:50px; background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow);">
-            <i class="fas fa-search" style="font-size:48px; color:var(--secondary-color); margin-bottom:20px;"></i>
-            <h3 style="color:var(--secondary-color); margin-bottom:15px;">Сообщения не найдены</h3>
-            <p style="color:var(--secondary-color);">Попробуйте изменить поисковый запрос или фильтры</p>
-            <a href="index.php" style="display:inline-block; margin-top:20px; padding:10px 20px; background:var(--primary-color); color:white; text-decoration:none; border-radius:6px;">
-                <i class="fas fa-arrow-left"></i> Вернуться на главную
-            </a>
-        </div>
+    <div
+        style="text-align:center; padding:50px; background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow);">
+        <i class="fas fa-search" style="font-size:48px; color:var(--secondary-color); margin-bottom:20px;"></i>
+        <h3 style="color:var(--secondary-color); margin-bottom:15px;">Сообщения не найдены</h3>
+        <p style="color:var(--secondary-color);">Попробуйте изменить поисковый запрос или фильтры</p>
+        <a href="index.php"
+            style="display:inline-block; margin-top:20px; padding:10px 20px; background:var(--primary-color); color:white; text-decoration:none; border-radius:6px;">
+            <i class="fas fa-arrow-left"></i> Вернуться на главную
+        </a>
+    </div>
     <?php endif; ?>
 </div>
 
-<!-- Подключаем тот же JavaScript что и в index.php -->
 <script>
-// Переменные для проверки прав
+// переменные для проверки прав
 const currentUserId = <?= $user_id ?>;
 const isAdmin = <?= $is_admin ? 'true' : 'false' ?>;
 
-// ГОЛОСОВАНИЕ
+// голосование
 function vote(id, type) {
     const msgEl = document.getElementById(`msg-${id}`);
     let currentVote = parseInt(msgEl.dataset.userVote || '0');
@@ -330,7 +341,7 @@ function vote(id, type) {
         });
 }
 
-// УДАЛЕНИЕ
+// удаление
 function deleteMessage(id) {
     if (!confirm('Удалить сообщение и все ответы?')) return;
 
@@ -356,7 +367,7 @@ function deleteMessage(id) {
         });
 }
 
-// РЕДАКТИРОВАНИЕ
+// редактирование
 function editMessage(id) {
     const textDiv = document.querySelector(`#msg-${id} .msg-text`);
     const originalHTML = textDiv.innerHTML;
@@ -412,7 +423,7 @@ function editMessage(id) {
     textDiv.appendChild(cancelBtn);
 }
 
-// ОТВЕТЫ
+// ответы
 function toggleReply(id) {
     const form = document.getElementById(`reply-form-${id}`);
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
@@ -435,7 +446,7 @@ function submitReply(id) {
             if (data.success) {
                 document.getElementById(`reply-text-${id}`).value = '';
                 toggleReply(id);
-                location.reload(); // Перезагружаем для обновления результатов
+                location.reload(); // обновление результатов
             } else {
                 alert('Ошибка: ' + (data.error || 'Неизвестно'));
             }
@@ -446,7 +457,7 @@ function submitReply(id) {
         });
 }
 
-// ЗАГРУЗКА ОТВЕТОВ
+// загрузка ответов
 function loadReplies(id) {
     const repliesDiv = document.getElementById(`replies-${id}`);
     const showButton = document.getElementById(`show-replies-${id}`);
@@ -457,7 +468,8 @@ function loadReplies(id) {
         return;
     }
 
-    repliesDiv.innerHTML = '<div style="text-align: center; color: var(--primary-color); padding: 20px;">Загрузка ответов...</div>';
+    repliesDiv.innerHTML =
+        '<div style="text-align: center; color: var(--primary-color); padding: 20px;">Загрузка ответов...</div>';
     repliesDiv.style.display = 'block';
 
     fetch(`api.php?action=get_replies&parent_id=${id}`)
@@ -479,14 +491,14 @@ function loadReplies(id) {
                     // Подсветка поиска в ответах
                     let highlighted_reply_message = reply.message;
                     let highlighted_reply_username = reply.username;
-                    
+
                     if (!empty($query)) {
                         highlighted_reply_message = reply.message.replace(
-                            new RegExp("(" + $query + ")", "gi"), 
+                            new RegExp("(" + $query + ")", "gi"),
                             '<mark style="background:#ffeaa7; color: #000;">$1</mark>'
                         );
                         highlighted_reply_username = reply.username.replace(
-                            new RegExp("(" + $query + ")", "gi"), 
+                            new RegExp("(" + $query + ")", "gi"),
                             '<mark style="background:#ffeaa7; color: #000;">$1</mark>'
                         );
                     }
